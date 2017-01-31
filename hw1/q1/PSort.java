@@ -10,12 +10,34 @@ public class PSort implements Callable<int[]> {
 	private int begin, end;
 	private static ExecutorService threadPool;
 
+	/**
+	 * Initialize and kick off a parallel quick sort.
+	 */
+	public static void parallelSort(int[] A, int begin, int end) {
+		try {
+			threadPool = Executors.newCachedThreadPool();
+			PSort parallelSort = new PSort(A, begin, end);
+			Future<int[]> sortResult = threadPool.submit(parallelSort);
+			System.out.println("return value: " + sortResult.get());
+			// sortResult.get();
+		} catch (Exception err) {
+			err.printStackTrace();
+		} finally {
+			threadPool.shutdown();
+		}
+	}
+
 	public PSort(int[] A, int begin, int end) {
 		this.array = A;
 		this.begin = begin;
 		this.end = end;
 	}
 
+	/**
+	 * Recursive parallel calls to quicksort threads.
+	 * Partition according to a middle pivot, then kick off two more threads.
+	 * Insertion sort for base cases of length <= 4.
+	 */
 	public int[] call() throws InterruptedException, ExecutionException {
 		// System.out.format("begin: %d, end: %d\n", begin, end);
 		// base case: insertion sort for length <= 4
@@ -26,7 +48,7 @@ public class PSort implements Callable<int[]> {
 		}
 
 		// choose pivot and quicksort
-		int pivot = (begin + end) / 2;
+		int pivot = (begin + ((end - begin) / 2));
 		int pivotValue = array[pivot];
 		int low = begin, high = end - 1;
 
@@ -43,6 +65,7 @@ public class PSort implements Callable<int[]> {
 
 			// if we find two valid values, swap
 			if (low <= high) {
+				// swap(array, low, high);
 				swap(array, low, high);
 				low = low + 1;
 				high = high - 1;
@@ -50,48 +73,43 @@ public class PSort implements Callable<int[]> {
 
 		}
 
+		// if ((begin >= high + 1) || (low > end)) {
+		// SimpleTest.printArray(Arrays.copyOfRange(array, begin, end));
+		// System.err.println("ERROR: potential array conflict here!");
+		// System.out.format("begin: %d, end: %d\n", begin, end);
+		// System.out.format("low: %d, high: %d\n", low, high);
+		// }
+
 		// Kick off two more PSort worker threads.
 		PSort leftSort = new PSort(array, begin, high + 1);
 		PSort rightSort = new PSort(array, low, end);
 		Future<int[]> leftFuture = threadPool.submit(leftSort);
 		Future<int[]> rightFuture = threadPool.submit(rightSort);
-		rightFuture.get();
 		leftFuture.get();
-
+		rightFuture.get();
 		return array;
 	}
 
 	/**
-	 * Initialize and kick off a parallel quick sort.
+	 * Swap the two elements in the object array.
 	 */
-	public static void parallelSort(int[] A, int begin, int end) {
-		try {
-			threadPool = Executors.newCachedThreadPool();
-			PSort parallelSort = new PSort(A, begin, end);
-			Future<int[]> sortResult = threadPool.submit(parallelSort);
-			// System.out.println("return value: " + sortResult.get());
-			sortResult.get();
-		} catch (Exception err) {
-			err.printStackTrace();
-		} finally {
-			threadPool.shutdown();
-		}
-	}
-
-	/**
-	 * Swap the two elements in the object array. 
-	 */
-	private void swap(int[] array, int low, int high) {
+	private static void swap(int[] array, int low, int high) {
+		// if ((low >= high)) {
+		// System.err.println("ERROR: potential swap error!");
+		// System.out.format("begin: %d, end: %d\n", begin, end);
+		// System.out.format("low: %d, high: %d\n", low, high);
+		// }
 		int temp = array[low];
 		array[low] = array[high];
 		array[high] = temp;
+
 	}
 
 	/**
 	 * Insertion sort in place the values in the PSort array. end denotes 1
 	 * index higher than the top index.
 	 */
-	private void InsertionSort(int array[], int begin, int end) {
+	private static void InsertionSort(int[] array, int begin, int end) {
 		for (int i = begin; i < end; i++) {
 			for (int j = i; j > 0; j--) {
 				if (array[j] < array[j - 1]) {

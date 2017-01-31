@@ -6,6 +6,9 @@ public class SimpleTest {
 		int[] A1 = { 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
 		verifyParallelSort(A1);
 
+		int[] sortedArray = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+		verifyParallelSort(sortedArray);
+
 		int[] A2 = { 1, 3, 5, 7, 9 };
 		verifyParallelSort(A2);
 
@@ -18,15 +21,12 @@ public class SimpleTest {
 		int[] A5 = { 6 };
 		verifyParallelSort(A5);
 
-		final int randomLength = 20;
+		final int randomLength = 10000;
 		int[] A6 = new int[randomLength];
 		for (int i = 0; i < randomLength; i++) {
-			A6[i] = (int) (Math.random() * 10);
+			A6[i] = (int) (Math.random() * 100000);
 		}
 		verifyParallelSort(A6);
-		
-		int[] A7 = {0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 4, 4, 5, 6, 6, 6, 6, 8, 9, 9};
-		verifyParallelSort(A7);
 
 	}
 
@@ -47,6 +47,7 @@ public class SimpleTest {
 				System.out.println("Expect:");
 				printArray(A);
 				System.out.println("Your results: " + i);
+				System.out.println("A[i]: " + A[i] + " B[i]: " + B[i]);
 				printArray(B);
 				isSuccess = false;
 				break;
@@ -68,5 +69,9 @@ public class SimpleTest {
 			}
 		}
 		System.out.println();
+	}
+
+	public static void TestInsertionSort(int[] A) {
+
 	}
 }
