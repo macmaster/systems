@@ -21,10 +21,10 @@ public class SimpleTest {
 		int[] A5 = { 6 };
 		verifyParallelSort(A5);
 
-		final int randomLength = 10000;
+		final int randomLength = 1200000;
 		int[] A6 = new int[randomLength];
 		for (int i = 0; i < randomLength; i++) {
-			A6[i] = (int) (Math.random() * 100000);
+			A6[i] = (int) (Math.random() * randomLength);
 		}
 		verifyParallelSort(A6);
 

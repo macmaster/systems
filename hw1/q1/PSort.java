@@ -34,16 +34,16 @@ public class PSort implements Callable<int[]> {
 	}
 
 	/**
-	 * Recursive parallel calls to quicksort threads.
-	 * Partition according to a middle pivot, then kick off two more threads.
-	 * Insertion sort for base cases of length <= 4.
+	 * Recursive parallel calls to quicksort threads. Partition according to a
+	 * middle pivot, then kick off two more threads. Insertion sort for base
+	 * cases of length <= 4.
 	 */
 	public int[] call() throws InterruptedException, ExecutionException {
 		// System.out.format("begin: %d, end: %d\n", begin, end);
 		// base case: insertion sort for length <= 4
 		int length = end - begin;
 		if (length <= 4) {
-			InsertionSort(array, begin, end);
+			InsertionSort(begin, end);
 			return array;
 		}
 
@@ -66,20 +66,12 @@ public class PSort implements Callable<int[]> {
 			// if we find two valid values, swap
 			if (low <= high) {
 				// swap(array, low, high);
-				swap(array, low, high);
+				swap(low, high);
 				low = low + 1;
 				high = high - 1;
 			}
 
 		}
-
-		// if ((begin >= high + 1) || (low > end)) {
-		// SimpleTest.printArray(Arrays.copyOfRange(array, begin, end));
-		// System.err.println("ERROR: potential array conflict here!");
-		// System.out.format("begin: %d, end: %d\n", begin, end);
-		// System.out.format("low: %d, high: %d\n", low, high);
-		// }
-
 		// Kick off two more PSort worker threads.
 		PSort leftSort = new PSort(array, begin, high + 1);
 		PSort rightSort = new PSort(array, low, end);
@@ -93,12 +85,7 @@ public class PSort implements Callable<int[]> {
 	/**
 	 * Swap the two elements in the object array.
 	 */
-	private static void swap(int[] array, int low, int high) {
-		// if ((low >= high)) {
-		// System.err.println("ERROR: potential swap error!");
-		// System.out.format("begin: %d, end: %d\n", begin, end);
-		// System.out.format("low: %d, high: %d\n", low, high);
-		// }
+	private void swap(int low, int high) {
 		int temp = array[low];
 		array[low] = array[high];
 		array[high] = temp;
@@ -109,11 +96,11 @@ public class PSort implements Callable<int[]> {
 	 * Insertion sort in place the values in the PSort array. end denotes 1
 	 * index higher than the top index.
 	 */
-	private static void InsertionSort(int[] array, int begin, int end) {
+	private void InsertionSort(int begin, int end) {
 		for (int i = begin; i < end; i++) {
-			for (int j = i; j > 0; j--) {
+			for (int j = i; j > begin; j--) {
 				if (array[j] < array[j - 1]) {
-					swap(array, j - 1, j);
+					swap(j - 1, j);
 				}
 			}
 		}
