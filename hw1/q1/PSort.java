@@ -42,7 +42,7 @@ public class PSort implements Callable<int[]> {
         // base case: insertion sort for length <= 4
         int length = end - begin;
         if (length <= 4) {
-            InsertionSort(array, begin, end);
+            InsertionSort(begin, end);
             return array;
         }
 
@@ -109,10 +109,10 @@ public class PSort implements Callable<int[]> {
      * Insertion sort in place the values in the PSort array. end denotes 1
      * index higher than the top index.
      */
-    private static void InsertionSort(int[] array, int begin, int end) {
+    private void InsertionSort(int begin, int end) {
         for (int i = begin; i < end; i++) {
             int j = i;
-            while (j > 0 && array[j - 1] > array[j]) {
+            while (j > begin && array[j - 1] > array[j]) {
                 swap(array, j - 1, j);
                 j -= 1;
             }
