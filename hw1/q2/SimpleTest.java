@@ -17,12 +17,24 @@ public class SimpleTest {
 		int x3 = 50;
 		int numThread3 = 32;
 		verifyParallelSearch(x3, A3, numThread3);
+		
+
+        final int randomLength = 100000000;
+        final int randomValue = randomLength + 1;
+        final int numThread4 = 4;
+        int randomIndex = (int) (Math.random() * randomLength);
+        int[] A4 = new int[randomLength];
+        for (int i = 0; i < randomLength; i++) {
+            A4[i] = (int) (Math.random() * randomLength);
+        }
+        A4[randomIndex] = randomValue;
+        verifyParallelSearch(randomValue, A4, numThread4);
 	}
 
 	static void verifyParallelSearch(int x, int[] A, int numThread) {
 
 		System.out.print("Verify Parallel Search for x: " + x + " in array: ");
-		printArray(A);
+		//printArray(A);
 
 		int idx = -1;
 		for (int i = 0; i < A.length; i++) {
