@@ -29,6 +29,11 @@ public class SimpleTest {
         }
         A4[randomIndex] = randomValue;
         verifyParallelSearch(randomValue, A4, numThread4);
+        
+        int[] A7 = { };
+        int x7 = 6;
+        int numThread7 = 0;
+        verifyParallelSearch(x7, A7, numThread7);
 	}
 
 	static void verifyParallelSearch(int x, int[] A, int numThread) {
