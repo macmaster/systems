@@ -1,3 +1,4 @@
+
 /** PSort.java
  * By: Taylor Schmidt and Ronald Macmaster
  * UT-EID: trs2277   and    rpm953
@@ -13,7 +14,6 @@
  *      http://www.java2novice.com/java-sorting-algorithms/insertion-sort/
  */
 
-import java.util.*;
 import java.util.concurrent.*;
 
 public class PSort implements Callable<int[]> {
