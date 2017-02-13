@@ -1,28 +1,33 @@
 package hw2.readerwriter;
 
-import java.util.concurrent.Semaphore;
-
 class FairReadWriteLock {
-    private int numReaders = 0;    
-    Semaphore wlock = new Semaphore(1);
+    private int rank = 0, number = 0;
+    private int numReaders = 0;
 
     public synchronized void beginRead() throws InterruptedException {
-        numReaders++;
-        if (numReaders == 1)
-            wlock.acquire();
+        int position = number;
+        while (position > rank) {
+            wait();
+        }
+        numReaders = numReaders + 1;
     }
 
     public synchronized void endRead() throws InterruptedException {
-        numReaders--;
+        numReaders = numReaders - 1;
         if (numReaders == 0)
-            wlock.release();
+            notifyAll();
     }
 
     public synchronized void beginWrite() throws InterruptedException {
-        wlock.acquire();
+        int position = number;
+        number = number + 1;
+        while (position > rank || numReaders > 0) {
+            wait();
+        }
     }
 
     public synchronized void endWrite() {
-        wlock.release();
+        rank = rank + 1;
+        notifyAll();
     }
 }
