@@ -1,3 +1,12 @@
+/** MonitorCyclicBarrier.java
+ * By: Taylor Schmidt and Ronald Macmaster
+ * UT-EID: trs2277   and    rpm953
+ * Date: 2/13/17
+ * 
+ * A CyclicBarrier will trip when 
+ * the given number of parties (threads) are waiting upon it 
+ */
+
 package hw2.cyclicbarrier;
 
 /** MonitorCyclicBarrier
