@@ -1,4 +1,13 @@
 package hw2.garden;
+/** Garden.java
+ * By: Taylor Schmidt and Ronald Macmaster
+ * UT-EID: trs2277   and    rpm953
+ * Date: 2/13/17
+ * 
+ * Newton, Benjamin, and Mary are planting seeds of apple trees. 
+ * They have decided that Newton digs the holes and Benjamin places a seed into each hole. 
+ * Then Mary fills the holes.
+ */
 
 import java.util.concurrent.locks.*;
 
@@ -64,7 +73,7 @@ public class Garden {
 	}
 	
 	public void doneDigging() {
-		if(shovel.isHeldByCurrentThread()){
+		if (shovel.isHeldByCurrentThread()) {
 			// successfully dug hole.
 			newtonHoles = newtonHoles + 1;
 			unseededHoles = unseededHoles + 1;
@@ -73,7 +82,7 @@ public class Garden {
 			unseededHoleExists.signal();
 			shovel.unlock();
 		}
-
+		
 	}
 	
 	public void startSeeding() {

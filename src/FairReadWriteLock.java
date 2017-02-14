@@ -6,8 +6,6 @@
  * A FairReadWriteLock Synchronizes readers and writers using monitors.
  */
 
-package hw2.readerwriter;
-
 /**
  * FairReadWriteLock
  *

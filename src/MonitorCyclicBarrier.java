@@ -7,8 +7,6 @@
  * the given number of parties (threads) are waiting upon it 
  */
 
-package hw2.cyclicbarrier;
-
 /** MonitorCyclicBarrier
  * 
  * A MonitorCyclicBarrier will trip when 

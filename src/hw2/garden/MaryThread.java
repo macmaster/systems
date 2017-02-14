@@ -18,7 +18,7 @@ public class MaryThread extends Thread {
             garden.startFilling();
             // dig
             try {
-                Thread.sleep(50);
+                Thread.sleep(100);
                 System.out.println("Filling hole: " + (garden.totalHolesFilledByMary() + 1));
             } catch (InterruptedException e) {
                 // TODO Auto-generated catch block
