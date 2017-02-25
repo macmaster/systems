@@ -1,5 +1,5 @@
-import java.io.IOException;
-import java.net.ServerSocket;
+import java.io.*;
+import java.net.*;
 
 /** ServerTCPListener
  * By: Ronald Macmaster and Taylor Schmidt
@@ -25,9 +25,11 @@ public class ServerTCPListener extends Thread {
 	
 	public void run() {
 		try ( ServerSocket socket = new ServerSocket(port); ) {
-			socket.accept();
-			
-			
+			while(true){ // listen for tcp  clients
+			    Socket client = socket.accept();			    
+			    ServerThread worker = new ServerThread(server, client);
+			    worker.start();
+			}
 		} catch (IOException e) {
 			System.out.println("Error listening on TCP Socket. exiting...");
 			e.printStackTrace();
