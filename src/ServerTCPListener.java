@@ -1,4 +1,4 @@
-import java.io.IOException;
+import java.io.*;
 import java.net.*;
 
 /** ServerTCPListener
@@ -26,9 +26,8 @@ public class ServerTCPListener extends Thread {
 	public void run() {
 		try ( ServerSocket socket = new ServerSocket(port); ) {
 			while(true){ // listen for tcp  clients
-			    Socket client = socket.accept();
-			    ServerThread worker = new ServerThread(server, command);
-			    
+			    Socket client = socket.accept();			    
+			    ServerThread worker = new ServerThread(server, client);
 			    worker.start();
 			}
 		} catch (IOException e) {

@@ -8,13 +8,23 @@
  */
 
 import java.util.Scanner;
+import java.net.*;
+import java.io.*;
 
 public class Client {
+	int len = 1024;
+	byte[] rbuffer = new byte[len];
+	boolean isTCP = true;
+	InetAddress ia;
+	DatagramSocket dataSocket;
+
+	public Client(InetAddress ia, DatagramSocket dataSocket) {
+		this.ia = ia;
+		this.dataSocket = dataSocket;
+
+	}
 	public static void main(String[] args) {
-		String hostAddress;
-		int tcpPort;
-		int udpPort;
-		
+
 		if (args.length != 3) {
 			System.out.println("ERROR: Provide 3 arguments");
 			System.out.println("\t(1) <hostAddress>: the address of the server");
@@ -22,34 +32,85 @@ public class Client {
 			System.out.println("\t(3) <udpPort>: the port number for UDP connection");
 			System.exit(-1);
 		}
-		
-		hostAddress = args[0];
-		tcpPort = Integer.parseInt(args[1]);
-		udpPort = Integer.parseInt(args[2]);
-		
-		Scanner sc = new Scanner(System.in);
-		while (sc.hasNextLine()) {
-			String cmd = sc.nextLine();
-			String[] tokens = cmd.split(" ");
-			
-			if (tokens[0].equals("setmode")) {
-				// TODO: set the mode of communication for sending commands to the server 
-				// and display the name of the protocol that will be used in future
-			} else if (tokens[0].equals("purchase")) {
-				// TODO: send appropriate command to the server and display the
-				// appropriate responses form the server
-			} else if (tokens[0].equals("cancel")) {
-				// TODO: send appropriate command to the server and display the
-				// appropriate responses form the server
-			} else if (tokens[0].equals("search")) {
-				// TODO: send appropriate command to the server and display the
-				// appropriate responses form the server
-			} else if (tokens[0].equals("list")) {
-				// TODO: send appropriate command to the server and display the
-				// appropriate responses form the server
-			} else {
-				System.out.println("ERROR: No such command");
+		String hostAddress = args[0];
+		int tcpPort = Integer.parseInt(args[1]);
+		int udpPort = Integer.parseInt(args[2]);
+
+		try {
+            InetAddress ia = InetAddress.getByName(hostAddress);
+			DatagramSocket dataSocket = new DatagramSocket();
+			Scanner sc = new Scanner(System.in);
+
+			Client client = new Client(ia, dataSocket);
+
+			while (sc.hasNextLine()) {
+				String cmd = sc.nextLine();
+				String[] tokens = cmd.split(" ");
+
+				switch (tokens[0]) {
+					case "setmode":
+						// Set the mode of communication for sending commands to the server (TCP vs UDP)
+						switch (tokens[1]) {
+							case "T":
+								client.isTCP = true; break;
+							case "U":
+								client.isTCP = false; break;
+							default:
+								System.out.println("ERROR: '" + tokens[1] + "' is not a valid mode"); break;
+						}
+						System.out.println("Will use " + (isTCP ? "TCP" : "UDP") + " for communication.");
+						break;
+					case "purchase":
+						// TODO: send appropriate command to the server and display the
+						// appropriate responses form the server
+						break;
+					case "cancel":
+						// TODO: send appropriate command to the server and display the
+						// appropriate responses form the server
+						break;
+					case "search":
+						// TODO: send appropriate command to the server and display the
+						// appropriate responses form the server
+						break;
+					case "list":
+						// TODO: send appropriate command to the server and display the
+						if (client.isTCP) {
+							System.out.println("Not yet implemented");
+						} else {
+							String contents = tokens[0];
+                            client.sendUDPDatagram(contents);
+						}
+						break;
+					case "exit":
+						if (client.isTCP) {
+							System.out.println("Not yet implemented");
+						} else {
+							String contents = tokens[0];
+                            client.sendUDPDatagram(contents);
+						}
+					default:
+						System.out.println("ERROR: No such command");
+						break;
+				}
 			}
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (SocketException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
+
+	private void sendUDPDatagram(String contents) throws IOException {
+		DatagramPacket sPacket, rPacket;
+		byte[] buffer = contents.getBytes();
+		sPacket = new DatagramPacket(buffer, buffer.length, ia, udpPort);
+		dataSocket.send(sPacket);
+		rPacket = new DatagramPacket(rbuffer, rbuffer.length);
+		dataSocket.receive(rPacket);
+		String retStr = new String(rPacket.getData(), 0, rPacket.getLength());
+		System.out.println("Received from Server:" + retStr);
+	}
+
 }

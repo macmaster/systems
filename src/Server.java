@@ -16,7 +16,7 @@ public class Server {
     private String filename;
     private Map<String, Integer> products;
     private Integer tcpPort, udpPort;
-    
+
     // server port listeners
     private ServerTCPListener tcpListener;
     private ServerUDPListener udpListener;
@@ -37,8 +37,7 @@ public class Server {
         // parse the inventory file
         Server server = new Server(filename, tcpPort, udpPort);
         server.load();
-
-        server.list();
+        server.start();
 
         // TODO: handle request from clients
     }
@@ -48,6 +47,8 @@ public class Server {
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
         this.products = new HashMap<String, Integer>();
+        this.tcpListener = new ServerTCPListener(this, tcpPort);
+        this.udpListener = new ServerUDPListener(this, udpPort);
     }
 
     /**
@@ -56,15 +57,27 @@ public class Server {
      * prints sold out items with quantity 0. <br>
      * each product string is on a separate line.
      */
-    public synchronized void list() {
+    public synchronized String list() {
+        String response = "";
         for (Entry<String, Integer> record : products.entrySet()) {
             String product = record.getKey();
             Integer quantity = record.getValue();
 
             // print product record
-            String output = String.format("%s %d", product, quantity);
-            System.out.println(output);
+            String output = String.format("%s %d\n", product, quantity);
+            response += output;
         }
+        return response;
+    }
+
+    /**
+     * start()
+     * 
+     * start the server listeners <br>
+     */
+    public void start() {
+        tcpListener.start();
+        udpListener.start();
     }
 
     /**

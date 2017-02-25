@@ -10,30 +10,33 @@ import java.net.*;
  * Opens new UDP server socket and listens <br>
  */
 public class ServerUDPListener extends Thread {
-	
-	private int port;
-	private Server server;
-	
-	/** ServerUDPListener <br>
-	 * 
-	 * Constructs a new ServerUDPListener Object. <br>
-	 */
-	public ServerUDPListener(Server server, int port) {
-		this.port = port;
-		this.server = server;
-	}
-	
-	public void run() {
-		try ( DatagramSocket socket = new ServerSocket(port); ) {
-			while(true){ // listen for tcp  clients
-			    Datagram packet = 
-			    ServerThread worker = new ServerThread(server, client);
-			    worker.start();
-			}
-		} catch (IOException e) {
-			System.out.println("Error listening on TCP Socket. exiting...");
-			e.printStackTrace();
-		}
-	}
-	
+
+    private int port;
+    private Server server;
+
+    /** ServerUDPListener <br>
+     * 
+     * Constructs a new ServerUDPListener Object. <br>
+     */
+    public ServerUDPListener(Server server, int port) {
+        this.port = port;
+        this.server = server;
+    }
+
+    public void run() {
+        try (DatagramSocket socket = new DatagramSocket(port);) {
+            final int length = 1024;
+            while (true) { // listen for tcp clients
+                byte[] data = new byte[length];
+                DatagramPacket packet = new DatagramPacket(data, length);
+                socket.receive(packet);
+                ServerThread worker = new ServerThread(server, packet);
+                worker.start();
+            }
+        } catch (IOException e) {
+            System.out.println("Error listening on TCP Socket. exiting...");
+            e.printStackTrace();
+        }
+    }
+
 }
