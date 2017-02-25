@@ -60,7 +60,7 @@ public class ServerThread extends Thread {
         try (InputStreamReader istream = new InputStreamReader(socket.getInputStream());
                 PrintWriter ostream = new PrintWriter(socket.getOutputStream());
                 BufferedReader reader = new BufferedReader(istream);) {
-            
+
             // continually service tcp connection.
             String command = "", response = "";
             while ((command = reader.readLine()) != null) {
@@ -85,36 +85,42 @@ public class ServerThread extends Thread {
      * Sends a response packet.
      */
     public void serviceUDP() {
-        String command = new String(packet.getData());
-        System.out.println("UDP Service: " + command);
+        try (DatagramSocket socket = new DatagramSocket()) {
+            String command = new String(packet.getData());
+            System.out.println("UDP Service: " + command);
 
-        // execute server command
-        String response = execute(command);
-        byte[] data = response.getBytes();
-        int length = data.length;
+            // execute server command
+            String response = execute(command);
+            byte[] data = response.getBytes();
+            int length = data.length;
 
-        // send return packet with command response.
-        DatagramPacket returnPacket = new DatagramPacket(data, length);
-        returnPacket.setAddress(packet.getAddress());
-        returnPacket.setPort(packet.getPort());
+            // send return packet with command response.
+            DatagramPacket returnPacket = new DatagramPacket(data, length);
+            returnPacket.setAddress(packet.getAddress());
+            returnPacket.setPort(packet.getPort());
+            socket.send(returnPacket);
+        } catch(IOException err){
+            System.err.println("Error servicing UDP request.");
+            err.printStackTrace();
+        }
     }
 
     public String execute(String command) {
         String response = "";
-        String[] tokens = command.split("\\s+");
-        try{ // parse and execute
-            String opcode = tokens[0];            
+        String[] tokens = command.trim().split("\\s+");
+        try { // parse and execute
+            String opcode = tokens[0].toLowerCase();
             if (opcode.equals("list")) {
                 response = server.list();
             } else {
                 response = command;
             }
-        } catch (Exception err){
+        } catch (Exception err) {
             System.err.println("invalid server command: " + command);
             response = "invalid server command: " + command;
             err.printStackTrace();
-        } 
-        
+        }
+
         // client response
         return response;
     }
