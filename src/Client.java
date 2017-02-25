@@ -17,11 +17,15 @@ public class Client {
 	boolean isTCP = true;
 	InetAddress ia;
 	DatagramSocket dataSocket;
+	int tcpPort;
+	int udpPort;
 
-	public Client(InetAddress ia, DatagramSocket dataSocket) {
+
+	public Client(InetAddress ia, DatagramSocket dataSocket, int udpPort, int tcpPort) {
 		this.ia = ia;
 		this.dataSocket = dataSocket;
-
+		this.udpPort = udpPort;
+		this.tcpPort = tcpPort;
 	}
 	public static void main(String[] args) {
 
@@ -41,7 +45,7 @@ public class Client {
 			DatagramSocket dataSocket = new DatagramSocket();
 			Scanner sc = new Scanner(System.in);
 
-			Client client = new Client(ia, dataSocket);
+			Client client = new Client(ia, dataSocket, udpPort, tcpPort);
 
 			while (sc.hasNextLine()) {
 				String cmd = sc.nextLine();
@@ -58,7 +62,7 @@ public class Client {
 							default:
 								System.out.println("ERROR: '" + tokens[1] + "' is not a valid mode"); break;
 						}
-						System.out.println("Will use " + (isTCP ? "TCP" : "UDP") + " for communication.");
+						System.out.println("Will use " + (client.isTCP ? "TCP" : "UDP") + " for communication.");
 						break;
 					case "purchase":
 						// TODO: send appropriate command to the server and display the
