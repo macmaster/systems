@@ -67,7 +67,7 @@ public class Server {
             String output = String.format("%s %d\n", product, quantity);
             response += output;
         }
-        return response;
+        return response.trim();
     }
 
     /**
