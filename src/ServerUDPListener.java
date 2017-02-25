@@ -1,34 +1,33 @@
 import java.io.IOException;
 import java.net.*;
 
-/** ServerTCPListener
+/** ServerUDPListener
  * By: Ronald Macmaster and Taylor Schmidt
  * UT-EID: rpm953   and    trs2277
  * Date: 2/25/17
  * 
- * TCP Listener thread for product server. <br>
- * Opens new TCP server socket and listens <br>
+ * UDP Listener thread for product server. <br>
+ * Opens new UDP server socket and listens <br>
  */
-public class ServerTCPListener extends Thread {
+public class ServerUDPListener extends Thread {
 	
 	private int port;
 	private Server server;
 	
-	/** ServerTCPListener <br>
+	/** ServerUDPListener <br>
 	 * 
-	 * Constructs a new ServerTCPListener Object. <br>
+	 * Constructs a new ServerUDPListener Object. <br>
 	 */
-	public ServerTCPListener(Server server, int port) {
+	public ServerUDPListener(Server server, int port) {
 		this.port = port;
 		this.server = server;
 	}
 	
 	public void run() {
-		try ( ServerSocket socket = new ServerSocket(port); ) {
+		try ( DatagramSocket socket = new ServerSocket(port); ) {
 			while(true){ // listen for tcp  clients
-			    Socket client = socket.accept();
-			    ServerThread worker = new ServerThread(server, command);
-			    
+			    Datagram packet = 
+			    ServerThread worker = new ServerThread(server, client);
 			    worker.start();
 			}
 		} catch (IOException e) {
