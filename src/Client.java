@@ -47,6 +47,7 @@ public class Client {
 
 			Client client = new Client(ia, dataSocket, udpPort, tcpPort);
 
+			System.out.print("REQ> ");
 			while (sc.hasNextLine()) {
 				String cmd = sc.nextLine();
 				String[] tokens = cmd.split(" ");
@@ -96,6 +97,7 @@ public class Client {
 						System.out.println("ERROR: No such command");
 						break;
 				}
+				System.out.print("REQ> ");
 			}
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
