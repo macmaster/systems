@@ -154,6 +154,7 @@ public class Server {
      * start the server listeners <br>
      */
     public void start() {
+        System.out.println("Starting inventory server...");
         tcpListener.start();
         udpListener.start();
     }
