@@ -18,8 +18,11 @@ public class Client {
     boolean isTCP = true;
     InetAddress ia;
     DatagramSocket dataSocket;
+    Socket socket;
     int tcpPort;
     int udpPort;
+    PrintWriter out;
+    BufferedReader in;
 
     public Client(InetAddress ia, DatagramSocket dataSocket, int udpPort, int tcpPort) {
         this.ia = ia;
@@ -47,7 +50,7 @@ public class Client {
             Scanner sc = new Scanner(System.in);
 
             Client client = new Client(ia, dataSocket, udpPort, tcpPort);
-            
+            client.connectToServer();
 
 			System.out.print("REQ> ");
 			while (sc.hasNextLine()) {
@@ -56,8 +59,8 @@ public class Client {
 
                 switch (tokens[0]) {
                     case "setmode":
-                        // Set the mode of communication for sending commands to
-                        // the server (TCP vs UDP)
+                        // Set the mode of communication for sending commands to the server (TCP vs UDP)
+                        // Looks like "setmode [U|T]"
                         switch (tokens[1]) {
                             case "T":
                                 client.isTCP = true;
@@ -71,38 +74,29 @@ public class Client {
                         }
                         System.out.println("Will use " + (client.isTCP ? "TCP" : "UDP") + " for communication.");
                         break;
-                    case "purchase":
-                        // TODO: send appropriate command to the server and
-                        // display the
-                        // appropriate responses form the server
-                        break;
-                    case "cancel":
-                        // TODO: send appropriate command to the server and
-                        // display the
-                        // appropriate responses form the server
-                        break;
-                    case "search":
-                        // TODO: send appropriate command to the server and
-                        // display the
-                        // appropriate responses form the server
-                        break;
-                    case "list":
-                        // TODO: send appropriate command to the server and
-                        // display the
+                    case "purchase": // Looks like "purchase <user-name> <product-name> <quantity>"
+                    case "cancel":   // Looks like "cancel <order-id>"
+                    case "search":   // Looks like "search <user-name>"
+                    case "list":     // Looks like "list"
                         if (client.isTCP) {
-                            System.out.println("Not yet implemented");
+                            client.sendTCPRequest(cmd);
                         } else {
-                            String contents = tokens[0];
-                            client.sendUDPDatagram(contents);
+                            client.sendUDPDatagram(cmd);
                         }
                         break;
                     case "exit":
                         if (client.isTCP) {
-                            System.out.println("Not yet implemented");
+                            client.out.println("exit");
+                            client.disconnectFromServer();
+                            System.out.println("Closed connection to server.");
                         } else {
                             String contents = tokens[0];
                             client.sendUDPDatagram(contents);
 						}
+						break;
+                    case "connect":
+                        client.connectToServer();
+                        break;
 					default:
 						System.out.println("ERROR: No such command");
 						break;
@@ -117,7 +111,8 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-    private void sendUDPDatagram(String contents) throws IOException {
+
+    public void sendUDPDatagram(String contents) throws IOException {
         DatagramPacket sPacket, rPacket;
         byte[] buffer = contents.getBytes();
         sPacket = new DatagramPacket(buffer, buffer.length, ia, udpPort);
@@ -125,7 +120,30 @@ public class Client {
         rPacket = new DatagramPacket(rbuffer, rbuffer.length);
         dataSocket.receive(rPacket);
         String retStr = new String(rPacket.getData(), 0, rPacket.getLength());
-        System.out.println("Received from Server:" + retStr);
+        System.out.println("Received from Server:");
+        System.out.println(retStr);
     }
 
+    public void connectToServer() throws IOException {
+        if (this.socket == null || this.socket.isClosed()) {
+            this.socket = new Socket(this.ia, this.tcpPort);
+        }
+        this.in.close();
+        this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+        this.out.close();
+        this.out = new PrintWriter(this.socket.getOutputStream(), true);
+    }
+
+    public void disconnectFromServer() throws IOException {
+        this.socket.close();
+        this.in.close();
+        this.out.close();
+    }
+
+    public void sendTCPRequest(String contents) throws IOException {
+        this.out.println(contents);
+        String response = this.in.readLine();
+        System.out.println("Server response:");
+        System.out.println(response);
+    }
 }
