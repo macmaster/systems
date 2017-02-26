@@ -1,6 +1,3 @@
-import java.io.*;
-import java.net.*;
-
 /** ServerTCPListener
  * By: Ronald Macmaster and Taylor Schmidt
  * UT-EID: rpm953   and    trs2277
@@ -9,6 +6,10 @@ import java.net.*;
  * TCP Listener thread for product server. <br>
  * Opens new TCP server socket and listens <br>
  */
+
+import java.io.*;
+import java.net.*;
+
 public class ServerTCPListener extends Thread {
 	
 	private int port;
@@ -25,7 +26,7 @@ public class ServerTCPListener extends Thread {
 	
 	public void run() {
 		try ( ServerSocket socket = new ServerSocket(port); ) {
-			while(true){ // listen for tcp  clients
+			while(true){ // listen for tcp clients
 			    Socket client = socket.accept();			    
 			    ServerThread worker = new ServerThread(server, client);
 			    worker.start();

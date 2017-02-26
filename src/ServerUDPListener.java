@@ -34,7 +34,7 @@ public class ServerUDPListener extends Thread {
                 worker.start();
             }
         } catch (IOException e) {
-            System.out.println("Error listening on TCP Socket. exiting...");
+            System.out.println("Error listening on UDP Socket. exiting...");
             e.printStackTrace();
         }
     }
