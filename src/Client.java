@@ -52,11 +52,10 @@ public class Client {
             Client client = new Client(ia, dataSocket, udpPort, tcpPort);
             client.connectToServer();
 
-			System.out.print("REQ> ");
+			System.out.print("> ");
 			while (sc.hasNextLine()) {
 				String cmd = sc.nextLine();
-				String[] tokens = cmd.split(" ");
-
+				String[] tokens = cmd.trim().split("\\s+");
                 switch (tokens[0]) {
                     case "setmode":
                         // Set the mode of communication for sending commands to the server (TCP vs UDP)
@@ -101,7 +100,7 @@ public class Client {
 						System.out.println("ERROR: No such command");
 						break;
 				}
-				System.out.print("REQ> ");
+				System.out.print("> ");
 			}
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
@@ -143,8 +142,15 @@ public class Client {
     public void sendTCPRequest(String contents) throws IOException {
         this.out.println(contents);
         System.out.println("Waiting for server response...");
-        String response = this.in.readLine();
-        System.out.println("Server response:");
-        System.out.println(response);
+        String response;
+        boolean first = true;
+        while (true)  {
+            response = this.in.readLine();
+            if (response == null) { System.out.println("Server returned null."); break; }
+            if (response.equals("EOT")) { System.out.println("End of server response."); break; }
+            if (first) { System.out.println("Server response:"); first = false; }
+            System.out.println(response);
+        }
+
     }
 }
