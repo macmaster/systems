@@ -1,8 +1,5 @@
-import java.io.*;
-import java.util.*;
-import java.util.Map.Entry;
 
-/** Sever.java
+/** Server.java
  * By: Taylor Schmidt and Ronald Macmaster
  * UT-EID: trs2277   and    rpm953
  * Date: 2/25/17
@@ -11,10 +8,17 @@ import java.util.Map.Entry;
  * 
  */
 
+import java.io.*;
+import java.util.*;
+import java.util.Map.Entry;
+
 public class Server {
 
+    // server networking
     private String filename;
     private Integer tcpPort, udpPort;
+
+    // server records
     private Map<String, Integer> inventory;
     private Map<Integer, Order> orders; // list of pending orders.
     private Map<String, List<Order>> users; // user to string records
@@ -74,13 +78,15 @@ public class Server {
             users.put(username, cart);
         }
 
+        Integer count = inventory.get(product);
         if (!inventory.containsKey(product)) {
             response = "Not Available - We do not sell this product";
-        } else if (inventory.get(product) < quantity) {
+        } else if (count < quantity) {
             response = "Not Available - Not enough items";
+        } else if (quantity < 0) {
+            response = "Not Available - Negative purchases are not allowed";
         } else {
             // update inventory.
-            int count = inventory.get(product);
             inventory.put(product, count - quantity);
 
             // add user order to cart.
@@ -103,27 +109,27 @@ public class Server {
      */
     public synchronized String cancel(Integer orderId) {
         String response = "";
-        if(!orders.containsKey(orderId)){
+        if (!orders.containsKey(orderId)) {
             response = String.format("%d not  found,  no  such  order", orderId);
-        } else{
+        } else {
             // remove order from cart and records.
             Order order = orders.get(orderId);
             String user = order.getUser();
             List<Order> cart = users.get(user);
             orders.remove(orderId);
             cart.remove(order);
-            
+
             // update inventory.
             String product = order.getProduct();
             int count = inventory.get(product) + order.getQuantity();
             inventory.put(product, count);
-            
+
             response = String.format("Order %d is canceled", orderId);
         }
-        
-        return response;
+
+        return response.trim();
     }
-    
+
     /**
      * search()
      * 
@@ -131,10 +137,20 @@ public class Server {
      * if no existing orders for the user: prints "No order found for <user-name>"
      * otherwise, replies: "Order <order-id> is canceled"
      */
-    public synchronized String search(String username){
+    public synchronized String search(String username) {
         String response = "";
-        response = "search is not implemented yet.. lol";
-        return response;
+        List<Order> cart = users.get(username);
+        if (!users.containsKey(username) || cart.isEmpty()) {
+            response = String.format("No order found for %s", username);
+        } else {
+            for (Order order : cart) {
+                Integer id = order.getId();
+                String product = order.getProduct();
+                Integer quantity = order.getQuantity();
+                response += String.format("%d %s %s\n", id, product, quantity);
+            }
+        }
+        return response.trim();
     }
 
     /**

@@ -1,11 +1,14 @@
+/** ServerThread.java
+ * By: Taylor Schmidt and Ronald Macmaster
+ * UT-EID: trs2277   and    rpm953
+ * Date: 2/25/17
+ * 
+ * Services a server request.
+ */
+
 import java.io.*;
 import java.net.*;
 
-/** ServerThread
- * @author ronny <br>
- *
- * Services a server request.
- */
 public class ServerThread extends Thread {
 
     private Server server;
@@ -104,11 +107,15 @@ public class ServerThread extends Thread {
             socket.send(returnPacket);
             socket.close();
         } catch (IOException err) {
-            System.err.println("Error servicing UDP request.");
+            System.err.println("Error servicing UDP request. exiting...");
             err.printStackTrace();
         }
     }
 
+    /** execute()
+     * 
+     * Executes valid server command. <br>
+     */
     public String execute(String command) {
         String response = "";
         String[] tokens = command.trim().split("\\s+");
@@ -124,7 +131,7 @@ public class ServerThread extends Thread {
             } else if(opcode.equals("cancel")){
                 Integer orderId = Integer.parseInt(tokens[1]);
                 response = server.cancel(orderId);
-            } else if(opcode.equals("purchase")){
+            } else if(opcode.equals("search")){
                 String username = tokens[1];
                 response = server.search(username);
             } else {
