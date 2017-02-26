@@ -66,6 +66,8 @@ public class ServerThread extends Thread {
             while ((command = reader.readLine()) != null) {
                 System.out.println("TCP Service: " + command);
                 if (command.equals("exit")) {
+                    System.out.println("Closing tcp socket.");
+                    socket.close();
                     break; // finished socket execution.
                 } else { // execute server command.
                     response = execute(command);
@@ -99,7 +101,8 @@ public class ServerThread extends Thread {
             returnPacket.setAddress(packet.getAddress());
             returnPacket.setPort(packet.getPort());
             socket.send(returnPacket);
-        } catch(IOException err){
+            socket.close();
+        } catch (IOException err) {
             System.err.println("Error servicing UDP request.");
             err.printStackTrace();
         }
@@ -112,8 +115,19 @@ public class ServerThread extends Thread {
             String opcode = tokens[0].toLowerCase();
             if (opcode.equals("list")) {
                 response = server.list();
+            } else if(opcode.equals("purchase")){
+                String user = tokens[1];
+                String product = tokens[2];
+                Integer quantity = Integer.parseInt(tokens[3]);
+                response = server.purchase(user, product, quantity);
+            } else if(opcode.equals("cancel")){
+                Integer orderId = Integer.parseInt(tokens[1]);
+                response = server.cancel(orderId);
+            } else if(opcode.equals("purchase")){
+                String username = tokens[1];
+                response = server.search(username);
             } else {
-                response = command;
+                response = "server command not supported: " + opcode;
             }
         } catch (Exception err) {
             System.err.println("invalid server command: " + command);
