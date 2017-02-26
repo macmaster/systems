@@ -128,9 +128,9 @@ public class Client {
         if (this.socket == null || this.socket.isClosed()) {
             this.socket = new Socket(this.ia, this.tcpPort);
         }
-        this.in.close();
+        if (this.in != null) { this.in.close(); }
         this.in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-        this.out.close();
+        if (this.out != null) { this.out.close(); }
         this.out = new PrintWriter(this.socket.getOutputStream(), true);
     }
 
@@ -142,6 +142,7 @@ public class Client {
 
     public void sendTCPRequest(String contents) throws IOException {
         this.out.println(contents);
+        System.out.println("Waiting for server response...");
         String response = this.in.readLine();
         System.out.println("Server response:");
         System.out.println(response);
