@@ -85,6 +85,7 @@ public class Server {
 
             // add user order to cart.
             Order order = new Order(product, quantity);
+            order.setUser(username);
             orders.put(order.getId(), order);
             cart.add(order);
             response = order.toString();
@@ -123,6 +124,13 @@ public class Server {
         return response;
     }
     
+    /**
+     * search()
+     * 
+     * Lists all the users available for the user <br>
+     * if no existing orders for the user: prints "No order found for <user-name>"
+     * otherwise, replies: "Order <order-id> is canceled"
+     */
     public synchronized String search(String username){
         String response = "";
         response = "search is not implemented yet.. lol";

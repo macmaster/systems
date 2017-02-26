@@ -58,7 +58,7 @@ public class ServerThread extends Thread {
      */
     public void serviceTCP() {
         try (InputStreamReader istream = new InputStreamReader(socket.getInputStream());
-                PrintWriter ostream = new PrintWriter(socket.getOutputStream());
+                PrintWriter ostream = new PrintWriter(socket.getOutputStream(), true);
                 BufferedReader reader = new BufferedReader(istream);) {
 
             // continually service tcp connection.
@@ -71,7 +71,8 @@ public class ServerThread extends Thread {
                     break; // finished socket execution.
                 } else { // execute server command.
                     response = execute(command);
-                    ostream.print(response);
+                    ostream.println(response);
+                    ostream.println("EOT");
                 }
             }
         } catch (IOException err) {
