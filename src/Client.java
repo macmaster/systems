@@ -47,6 +47,7 @@ public class Client {
             Scanner sc = new Scanner(System.in);
 
             Client client = new Client(ia, dataSocket, udpPort, tcpPort);
+            
 
 			System.out.print("REQ> ");
 			while (sc.hasNextLine()) {

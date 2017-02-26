@@ -14,8 +14,10 @@ import java.util.Map.Entry;
 public class Server {
 
     private String filename;
-    private Map<String, Integer> products;
     private Integer tcpPort, udpPort;
+    private Map<String, Integer> inventory;
+    private Map<Integer, Order> orders; // list of pending orders.
+    private Map<String, List<Order>> users; // user to string records
 
     // server port listeners
     private ServerTCPListener tcpListener;
@@ -38,17 +40,93 @@ public class Server {
         Server server = new Server(filename, tcpPort, udpPort);
         server.load();
         server.start();
-
-        // TODO: handle request from clients
     }
 
     public Server(String filename, Integer tcpPort, Integer udpPort) {
+        // server networking
         this.filename = filename;
         this.tcpPort = tcpPort;
         this.udpPort = udpPort;
-        this.products = new HashMap<String, Integer>();
         this.tcpListener = new ServerTCPListener(this, tcpPort);
         this.udpListener = new ServerUDPListener(this, udpPort);
+
+        // server records
+        this.inventory = new HashMap<String, Integer>();
+        this.users = new HashMap<String, List<Order>>();
+        this.orders = new HashMap<Integer, Order>();
+    }
+
+    /**
+     * purchase()
+     * 
+     * Adds a valid purchase to the user's checkout cart. <br>
+     * if not enough items, returns : "Not Available - Not enough items"
+     * if product not in storage, returns : "Not Available - We do not sell this product"
+     */
+    public synchronized String purchase(String username, String product, Integer quantity) {
+        String response = "";
+
+        List<Order> cart; // user's checkout cart
+        if (users.containsKey(username)) {
+            cart = users.get(username);
+        } else {
+            cart = new ArrayList<Order>();
+            users.put(username, cart);
+        }
+
+        if (!inventory.containsKey(product)) {
+            response = "Not Available - We do not sell this product";
+        } else if (inventory.get(product) < quantity) {
+            response = "Not Available - Not enough items";
+        } else {
+            // update inventory.
+            int count = inventory.get(product);
+            inventory.put(product, count - quantity);
+
+            // add user order to cart.
+            Order order = new Order(product, quantity);
+            orders.put(order.getId(), order);
+            cart.add(order);
+            response = order.toString();
+        }
+
+        return response.trim();
+    }
+
+    /**
+     * cancel()
+     * 
+     * Cancels the order id. <br>
+     * if no existing order: prints "<order-id> not  found,  no  such  order"
+     * otherwise, replies: "Order <order-id> is canceled"
+     */
+    public synchronized String cancel(Integer orderId) {
+        String response = "";
+        if(!orders.containsKey(orderId)){
+            response = String.format("%d not  found,  no  such  order", orderId);
+        } else{
+            // remove order from cart and records.
+            Order order = orders.get(orderId);
+            String user = order.getUser();
+            List<Order> cart = users.get(user);
+            orders.remove(orderId);
+            cart.remove(order);
+            
+            // update inventory.
+            String product = order.getProduct();
+            int count = inventory.get(product) + order.getQuantity();
+            inventory.put(product, count);
+            
+            response = String.format("Order %d is canceled", orderId);
+        }
+        
+        return response;
+    }
+    
+    public synchronized String search(String username){
+        String response = "";
+        response = "search is not implemented yet.. lol";
+        return response;
     }
 
     /**
@@ -59,7 +137,7 @@ public class Server {
      */
     public synchronized String list() {
         String response = "";
-        for (Entry<String, Integer> record : products.entrySet()) {
+        for (Entry<String, Integer> record : inventory.entrySet()) {
             String product = record.getKey();
             Integer quantity = record.getValue();
 
@@ -91,7 +169,7 @@ public class Server {
     /** 
      * Load inventory file from custom source. <br>
      */
-    public void load(String filename) {
+    public synchronized void load(String filename) {
         try (FileInputStream fstream = new FileInputStream(filename);
                 InputStreamReader istream = new InputStreamReader(fstream);
                 BufferedReader reader = new BufferedReader(istream)) {
@@ -107,7 +185,7 @@ public class Server {
                     quantity = Integer.parseInt(tokens[1]);
 
                     // update product record
-                    products.put(product, quantity);
+                    inventory.put(product, quantity);
                 }
 
             }
