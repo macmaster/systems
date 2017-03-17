@@ -13,8 +13,7 @@ import java.net.*;
 import java.io.*;
 
 public class Client {
-    private int port, len = 1024;
-    private byte[] rbuffer = new byte[len];
+    private int port;
     private InetAddress ia;
     private Socket socket;
     private PrintWriter out;
@@ -59,7 +58,7 @@ public class Client {
     }
 
     public void connectToServer() throws IOException {
-        try { // TODO: Get this server timeout right.
+        try {
             this.ia = messenger.getServerAddress();
             this.port = messenger.getServerPort();
             if (this.socket == null || this.socket.isClosed()) {
@@ -79,15 +78,20 @@ public class Client {
             err.printStackTrace();
             System.err.format("ERROR: can't connect to host %s on port %d %n", ia.getHostAddress(), port);
             System.err.println("Hopping servers.");
-            messenger.hopServers(); // retry on new server.
-            connectToServer();
+            refreshConnection(); // retry on new server.
         }
     }
 
     public void disconnectFromServer() throws IOException {
-        this.socket.close();
-        this.in.close();
-        this.out.close();
+        if (this.socket != null) {
+            this.socket.close();
+        }
+        if (this.in != null) {
+            this.in.close();
+        }
+        if (this.out != null) {
+            this.out.close();
+        }
     }
 
     public void refreshConnection() throws IOException {
