@@ -126,6 +126,7 @@ public class Client {
             // timeout, server is dead. switch servers.
             refreshConnection();
             // resend command.
+            // TODO: Swap "resending command" to "printing failure and prompting again?"
             sendTCPRequest(contents);
         }
     }
