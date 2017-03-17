@@ -15,44 +15,25 @@ import java.util.Map.Entry;
 public class Server {
 
     // server networking
-    private String filename;
-    private Integer tcpPort, udpPort;
+    protected String filename;
+    private ServerMessenger messenger;
 
     // server records
     private Map<String, Integer> inventory;
     private Map<Integer, Order> orders; // list of pending orders.
     private Map<String, List<Order>> users; // user to string records
 
-    // server port listeners
-    private ServerTCPListener tcpListener;
-    private ServerUDPListener udpListener;
-
     public static void main(String[] args) {
-        int tcpPort, udpPort;
-        if (args.length != 3) {
-            System.out.println("ERROR: Provide 3 arguments");
-            System.out.println("\t(1) <tcpPort>: the port number for TCP connection");
-            System.out.println("\t(2) <udpPort>: the port number for UDP connection");
-            System.out.println("\t(3) <file>: the file of inventory");
-            System.exit(-1);
-        }
-        tcpPort = Integer.parseInt(args[0]);
-        udpPort = Integer.parseInt(args[1]);
-        String filename = args[2];
-
-        // parse the inventory file
-        Server server = new Server(filename, tcpPort, udpPort);
-        server.load();
+        // parse the inventory file and start the server.
+        System.out.println("Starting the inventory server...");
+        Server server = new Server();
+        server.init();
         server.start();
     }
 
-    public Server(String filename, Integer tcpPort, Integer udpPort) {
+    public Server() {
         // server networking
-        this.filename = filename;
-        this.tcpPort = tcpPort;
-        this.udpPort = udpPort;
-        this.tcpListener = new ServerTCPListener(this, tcpPort);
-        this.udpListener = new ServerUDPListener(this, udpPort);
+        this.messenger = new ServerMessenger(this);
 
         // server records
         this.inventory = new HashMap<String, Integer>();
@@ -66,6 +47,8 @@ public class Server {
      * Adds a valid purchase to the user's checkout cart. <br>
      * if not enough items, returns : "Not Available - Not enough items"
      * if product not in storage, returns : "Not Available - We do not sell this product"
+     * Upon success, reply with "Your order has been placed, <order-id> <user-name> <product-name> <quantity>" 
+     *      then, update the inventory.
      */
     public synchronized String purchase(String username, String product, Integer quantity) {
         String response = "";
@@ -94,7 +77,7 @@ public class Server {
             order.setUser(username);
             orders.put(order.getId(), order);
             cart.add(order);
-            response = order.toString();
+            response = String.format("Your order has been placed, %s", order.toString());
         }
 
         return response.trim();
@@ -105,7 +88,7 @@ public class Server {
      * 
      * Cancels the order id. <br>
      * if no existing order: prints "<order-id> not  found,  no  such  order"
-     * otherwise, replies: "Order <order-id> is canceled"
+     * otherwise, replies: "Order <order-id> is canceled" and updates the inventory.
      */
     public synchronized String cancel(Integer orderId) {
         String response = "";
@@ -135,7 +118,7 @@ public class Server {
      * 
      * Lists all the users available for the user <br>
      * if no existing orders for the user: prints "No order found for <user-name>"
-     * otherwise, replies: "Order <order-id> is canceled"
+     * Otherwise, all orders of the user as "<order-id>, <product-name>, <quantity>"
      */
     public synchronized String search(String username) {
         String response = "";
@@ -155,7 +138,7 @@ public class Server {
 
     /**
      * lists all available products with quantities of the store. <br>
-     * <b>format</b>: product-name quantity   <br>
+     * <b>format</b>: <product-name> <quantity>   <br>
      * prints sold out items with quantity 0. <br>
      * each product string is on a separate line.
      */
@@ -173,22 +156,19 @@ public class Server {
     }
 
     /**
-     * start()
-     * 
-     * start the server listeners <br>
+     * initializes the server.
      */
-    public void start() {
-        System.out.println("Starting inventory server...");
-        tcpListener.start();
-        udpListener.start();
+    public void init() {
+        messenger.init();
+        load(filename);
     }
 
     /**
      * 
-     * Load inventory file. <br>
+     * Starts the Messenger Service. <br>
      */
-    public void load() {
-        load(filename);
+    public void start() {
+        messenger.start();
     }
 
     /** 
@@ -196,8 +176,8 @@ public class Server {
      */
     public synchronized void load(String filename) {
         try (FileInputStream fstream = new FileInputStream(filename);
-                InputStreamReader istream = new InputStreamReader(fstream);
-                BufferedReader reader = new BufferedReader(istream)) {
+             InputStreamReader istream = new InputStreamReader(fstream);
+             BufferedReader reader = new BufferedReader(istream)) {
 
             // load product map from inventory file
             String line = "";
