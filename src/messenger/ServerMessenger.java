@@ -1,6 +1,7 @@
 package messenger;
 
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.util.*;
 
 import controller.Server;
@@ -20,13 +21,10 @@ public class ServerMessenger extends Messenger {
     private Integer serverId;
     private ServerTag serverTag;
 
-    // intra-server communication
-    private Set<Socket> channels;
-
     // Lamport's Algorithm
     private Integer numAcks = 0;
     private LamportClock timestamp;
-    private PriorityQueue<LamportClock> tasks;
+    private PriorityQueue<LamportClock> queue;
 
     /** ServerMessenger
      * 
@@ -34,6 +32,7 @@ public class ServerMessenger extends Messenger {
      */
     public ServerMessenger(Server server) {
         this.server = server;
+        this.queue = new PriorityQueue<LamportClock>();
     }
 
     /**
@@ -43,6 +42,7 @@ public class ServerMessenger extends Messenger {
      */
     public void start() {
         // server port listener
+        this.timestamp = new LamportClock(serverId);
         this.serverTag = tags.get(serverId); // set my server tag.
         new ServerTCPListener(server, serverTag.getPort()).start();
     }
@@ -78,9 +78,128 @@ public class ServerMessenger extends Messenger {
         return "<serverId> <numServers> <inventory_path>";
     }
 
-    /******************* Lamport's Clock Methods *************************/
+    /******************* Lamport's Clock Methods 
+     * @throws InterruptedException *************************/
 
-    private void request() {
+    public synchronized void request() throws InterruptedException {
+        // time that request is made.
+        queue.add(this.timestamp);
 
+        // create server channels.
+        // send timestamp and request to all servers.
+        for (Integer id : tags.keySet()) {
+            try { // create a socket channel
+                if (id != serverId) {
+                    ServerTag tag = tags.get(id);
+                    Socket socket = new Socket();
+                    socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort()), 100);
+                    socket.setSoTimeout(100); // 100ms socket timeouts.
+
+                    // send request string with clock.
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                    writer.format("request %s%n", timestamp.toString());
+                    writer.println("exit");
+
+                    // message acknowledgement
+                    reader.readLine(); // 100ms timeout.
+                    this.timestamp.increment();
+                    writer.close();
+                    reader.close();
+                    socket.close();
+                }
+            } catch (IOException err) {
+                System.err.println("could not establish socket for server " + id);
+                tags.remove(id); // remove inactive server tag.
+                numServers = numServers - 1;
+            }
+        }
+
+        // wait for acknowledgements.
+        while ((numAcks < numServers - 1) || !(timestamp.equals(queue.peek()))) {
+            wait();
+        }
+
+        // enter the critical section.
+        numAcks = 0;
     }
+
+    public synchronized void receiveRequest(LamportClock timestamp) {
+        // On receive(request, (ts, j))) from Pj :
+        Integer myts = this.timestamp.getTimestamp();
+        Integer otherts = timestamp.getTimestamp();
+        this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+        queue.add(timestamp);
+
+        ServerTag tag = tags.get(timestamp.getProcessId());
+        try (Socket socket = new Socket();) {
+            socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort()), 100);
+            socket.setSoTimeout(100); // 100ms socket timeouts.
+            PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+            writer.format("acknowledge %s%n", this.timestamp.toString());
+            writer.println("exit");
+            this.timestamp.increment();
+        } catch (IOException e) {
+            System.err.println("Could not acknowledge the request. server is down.");
+            queue.remove(timestamp);
+            e.printStackTrace();
+        }
+    }
+
+    public synchronized void receiveAcknowledgement(LamportClock timestamp) {
+        // update my timestamp
+        Integer myts = this.timestamp.getTimestamp();
+        Integer otherts = timestamp.getTimestamp();
+        this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+
+        // increment acks
+        numAcks += 1;
+        notifyAll();
+    }
+
+    public synchronized void receiveRelease(LamportClock timestamp) {
+        // update my timestamp
+        Integer myts = this.timestamp.getTimestamp();
+        Integer otherts = timestamp.getTimestamp();
+        this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+
+        // remove the request from the queue.
+        timestamp = queue.remove();
+        notifyAll();
+    }
+
+    public synchronized void release(String command) {
+        // create server channels.
+        // signal timestamped release to other servers.
+        for (Integer id : tags.keySet()) {
+            if (id != serverId) {
+                // create a socket channel
+                ServerTag tag = tags.get(id);
+                try (Socket socket = new Socket(tag.getAddress(), tag.getPort());
+                     BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                     PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);) {
+
+                    // send request string with clock.
+                    writer.format("release %s%n", this.timestamp.toString());
+                    writer.println(command);
+                    writer.println("exit");
+
+                    // message acknowledgement
+                    this.timestamp.increment();
+                } catch (IOException err) {
+                    System.err.format("server %d did not receive the release message", id);
+                }
+            }
+        }
+    }
+
+    /** incrementClock()
+     * 
+     * signals that an event has occurred. <br>
+     * updates the lamport clock. <br>
+     */
+    public synchronized void incrementClock() {
+        this.timestamp.increment();
+    }
+
 }

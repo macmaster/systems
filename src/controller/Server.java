@@ -45,6 +45,14 @@ public class Server {
         this.orders = new HashMap<Integer, Order>();
     }
 
+    /** getMessenger()
+     * 
+     * provides access to the messenger for this server. <br>
+     */
+    public ServerMessenger getMessenger() {
+        return this.messenger;
+    }
+
     /**
      * purchase()
      * 

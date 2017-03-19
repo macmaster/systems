@@ -1,4 +1,5 @@
 package messenger;
+
 import java.io.*;
 import java.util.*;
 
@@ -43,9 +44,9 @@ public abstract class Messenger {
      * postcondition: server tag-file is created.
      */
     public void init() {
-        try (InputStreamReader stream = new InputStreamReader(System.in);
-             BufferedReader reader = new BufferedReader(stream);) {
-
+        InputStreamReader stream = new InputStreamReader(System.in);
+        BufferedReader reader = new BufferedReader(stream);
+        try {
             do { // parse server / client metadata string.
                 System.out.format("Enter the metadata string (%s): ", getMetadataFormat());
             } while (!parseMetadata(reader.readLine()));
@@ -72,7 +73,6 @@ public abstract class Messenger {
         }
     }
 
-    
     /** getServerTag()
      * 
      * get the server tag handle of a specific server by id.<br>

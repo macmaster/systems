@@ -1,5 +1,7 @@
 package model;
 
+import java.util.regex.*;
+
 /** LamportClock
  * @author ronny <br>
  * Timestamp of a process according to lamport's clock.
@@ -23,10 +25,10 @@ public class LamportClock {
         this.timestamp = timestamp;
     }
 
-    public LamportClock setTimestamp(LamportClock stamp) {
-        if (stamp != null) {
-            this.processId = stamp.processId;
-            this.timestamp = stamp.timestamp;
+    public LamportClock setClock(LamportClock clock) {
+        if (clock != null) {
+            this.processId = clock.processId;
+            this.timestamp = clock.timestamp;
             return this;
         } else {
             return null;
@@ -42,12 +44,32 @@ public class LamportClock {
         return this;
     }
 
-    /** getId()
-     * 
-     * returns the served Id. <br>
+    /**
+     * @return the timestamp
      */
-    public Integer getId() {
+    public Integer getTimestamp() {
+        return timestamp;
+    }
+
+    /**
+     * @param timestamp the timestamp to set
+     */
+    public void setTimestamp(Integer timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    /**
+     * @return the processId
+     */
+    public Integer getProcessId() {
         return processId;
+    }
+
+    /**
+     * @param processId the processId to set
+     */
+    public void setProcessId(Integer processId) {
+        this.processId = processId;
     }
 
     public boolean equals(LamportClock stamp) {
@@ -78,6 +100,25 @@ public class LamportClock {
             return -1;
         } else {
             return 0;
+        }
+    }
+
+    public String toString() {
+        return String.format("(%d, %d)", timestamp, processId);
+    }
+
+    public static LamportClock parseClock(String clockString) {
+        try {
+            String regex = "\\((\\d+), (\\d+)\\)";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(clockString);
+            matcher.find();
+            Integer timestamp = Integer.parseInt(matcher.group(1));
+            Integer processId = Integer.parseInt(matcher.group(2));
+            return new LamportClock(timestamp, processId);
+        } catch (Exception err) {
+            // bad clock string
+            return null;
         }
     }
 }

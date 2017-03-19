@@ -9,14 +9,19 @@ package network;
  */
 
 import java.io.*;
-import java.net.*;
+import java.net.Socket;
+import java.util.concurrent.locks.ReentrantLock;
 
 import controller.Server;
+import messenger.ServerMessenger;
+import model.LamportClock;
 
 public class ServerThread extends Thread {
 
     private Server server;
     private Socket socket;
+    private ServerMessenger messenger;
+    private static ReentrantLock requestLock = new ReentrantLock(true);
 
     /** ServerThread <br>
      * 
@@ -26,6 +31,7 @@ public class ServerThread extends Thread {
     public ServerThread(Server server, Socket socket) {
         this.server = server;
         this.socket = socket;
+        this.messenger = server.getMessenger();
     }
 
     // service TCP Socket
@@ -45,14 +51,38 @@ public class ServerThread extends Thread {
              BufferedReader reader = new BufferedReader(istream);) {
 
             // continually service tcp connection.
+            LamportClock timestamp = null;
             String command = "", response = "";
             while ((command = reader.readLine()) != null) {
+                ostream.println("MESSAGE RECEIVED"); // 100ms acknowledgement.
                 System.out.println("TCP Service: " + command);
                 if (command.equals("exit")) {
-                    System.out.println("Closing tcp socket.");
                     socket.close();
                     break; // finished socket execution.
-                } else { // execute server command.
+                } else if (command.startsWith("request")) {
+                    // service intraserver request.
+                    timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+                    messenger.receiveRequest(timestamp);
+                } else if (command.startsWith("release")) {
+                    // service intraserver release.
+                    // execute the command before removing from queue.
+                    timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+                    command = reader.readLine();
+                    execute(command);
+                    messenger.receiveRelease(timestamp);
+                } else if (command.startsWith("acknowledge")) {
+                    // service intraserver acknowledgement.
+                    timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+                    messenger.receiveAcknowledgement(timestamp);
+                } else if (command.startsWith("purchase") || command.startsWith("cancel")) {
+                    requestLock.lock(); // request critical section
+                    messenger.request();
+                    response = execute(command);
+                    messenger.release(command);
+                    requestLock.unlock(); // release critical section
+                    ostream.println(response);
+                    ostream.println("EOT");
+                } else { // execute server command. (list or search)
                     response = execute(command);
                     ostream.println(response);
                     ostream.println("EOT");
@@ -61,6 +91,8 @@ public class ServerThread extends Thread {
         } catch (IOException err) {
             System.out.println("Error servicing TCP Client request. exiting...");
             err.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 

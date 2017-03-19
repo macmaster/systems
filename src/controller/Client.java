@@ -1,20 +1,9 @@
 package controller;
 
-/** Client.java
- * By: Taylor Schmidt and Ronald Macmaster
- * UT-EID: trs2277   and    rpm953
- * Date: 2/25/17
- * 
- * TCP / UDP Client for our online store.
- * 
- */
-
-import java.util.Scanner;
+import java.io.*;
+import java.net.*;
 
 import messenger.ClientMessenger;
-
-import java.net.*;
-import java.io.*;
 
 public class Client {
     private int port;
@@ -34,15 +23,18 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        // kick-start client input loop.
         System.out.println("\n\n/*** Online Shopping Client ***/");
-        try (Scanner sc = new Scanner(System.in);) {
+        try (InputStreamReader stream = new InputStreamReader(System.in);
+             BufferedReader reader = new BufferedReader(stream);) {
+            // kick-start client
             Client client = new Client();
             client.connectToServer();
+
+            // command loop.
+            String command = "";
             System.out.print("> ");
-            while (sc.hasNextLine()) {
-                String cmd = sc.nextLine();
-                client.execute(cmd);
+            while ((command = reader.readLine()) != null) {
+                client.execute(command);
                 System.out.print("> ");
             }
         } catch (UnknownHostException e) {
@@ -107,8 +99,9 @@ public class Client {
     public void sendTCPRequest(String contents) throws IOException {
         try {
             this.out.println(contents);
-            System.out.println("Waiting for server response...");
-            String response = "";
+            System.out.println("Waiting for server response... (MESSAGE RECEIVED)");
+            String response = this.in.readLine();
+            this.socket.setSoTimeout(0); // turn off timeout temporarily. TODO: confirm this is ok?
             boolean first = true;
             while (true) {
                 response = this.in.readLine();
@@ -130,9 +123,12 @@ public class Client {
             // timeout, server is dead. switch servers.
             refreshConnection();
             // resend command.
-            // TODO: Swap "resending command" to "printing failure and prompting again?"
+            // TODO: Swap "resending command" to "printing failure and prompting
+            // again?"
             sendTCPRequest(contents);
         }
+        this.socket.setSoTimeout(100); // turn timeout back on. TODO: confirm
+                                       // this is ok?
     }
 
     public void execute(String cmd) throws IOException {
