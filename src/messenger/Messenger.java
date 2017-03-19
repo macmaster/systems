@@ -1,5 +1,8 @@
+package messenger;
 import java.io.*;
 import java.util.*;
+
+import model.ServerTag;
 
 /** Messenger
  * @author ronny <br>

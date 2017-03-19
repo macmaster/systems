@@ -1,3 +1,4 @@
+package controller;
 
 /** Client.java
  * By: Taylor Schmidt and Ronald Macmaster
@@ -9,6 +10,9 @@
  */
 
 import java.util.Scanner;
+
+import messenger.ClientMessenger;
+
 import java.net.*;
 import java.io.*;
 

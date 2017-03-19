@@ -1,3 +1,5 @@
+package network;
+
 
 /** ServerThread.java
  * By: Taylor Schmidt and Ronald Macmaster
@@ -9,6 +11,8 @@
 
 import java.io.*;
 import java.net.*;
+
+import controller.Server;
 
 public class ServerThread extends Thread {
 

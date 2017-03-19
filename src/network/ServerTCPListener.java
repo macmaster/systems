@@ -1,14 +1,10 @@
-/** ServerTCPListener
- * By: Ronald Macmaster and Taylor Schmidt
- * UT-EID: rpm953   and    trs2277
- * Date: 2/25/17
- * 
- * TCP Listener thread for product server. <br>
- * Opens new TCP server socket and listens <br>
- */
+package network;
+
 
 import java.io.*;
 import java.net.*;
+
+import controller.Server;
 
 public class ServerTCPListener extends Thread {
 	

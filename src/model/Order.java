@@ -1,3 +1,4 @@
+package model;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Order

@@ -1,3 +1,4 @@
+package model;
 
 /** LamportClock
  * @author ronny <br>
