@@ -1,3 +1,6 @@
+import java.net.Socket;
+import java.util.*;
+
 /** ServerMessenger
  * @author ronny <br>
  * Contains communication methods for the server.
@@ -10,6 +13,15 @@ public class ServerMessenger extends Messenger {
     private Server server;
     private Integer serverId;
     private ServerTag serverTag;
+    
+    // intra-server communication
+    private Set<Socket> channels;
+    
+    
+    // Lamport's Algorithm
+    private Integer numAcks = 0;
+    private LamportClock timestamp;
+    private PriorityQueue<LamportClock> tasks;
 
     /** ServerMessenger
      * 
@@ -59,5 +71,11 @@ public class ServerMessenger extends Messenger {
     @Override
     protected String getMetadataFormat() {
         return "<serverId> <numServers> <inventory_path>";
+    }
+    
+    /******************* Lamport's Clock Methods *************************/
+    
+    private void request(){
+        
     }
 }

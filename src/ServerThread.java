@@ -1,3 +1,4 @@
+
 /** ServerThread.java
  * By: Taylor Schmidt and Ronald Macmaster
  * UT-EID: trs2277   and    rpm953
@@ -61,8 +62,8 @@ public class ServerThread extends Thread {
      */
     public void serviceTCP() {
         try (InputStreamReader istream = new InputStreamReader(socket.getInputStream());
-                PrintWriter ostream = new PrintWriter(socket.getOutputStream(), true);
-                BufferedReader reader = new BufferedReader(istream);) {
+             PrintWriter ostream = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader reader = new BufferedReader(istream);) {
 
             // continually service tcp connection.
             String command = "", response = "";
@@ -123,15 +124,15 @@ public class ServerThread extends Thread {
             String opcode = tokens[0].toLowerCase();
             if (opcode.equals("list")) {
                 response = server.list();
-            } else if(opcode.equals("purchase")){
+            } else if (opcode.equals("purchase")) {
                 String user = tokens[1];
                 String product = tokens[2];
                 Integer quantity = Integer.parseInt(tokens[3]);
                 response = server.purchase(user, product, quantity);
-            } else if(opcode.equals("cancel")){
+            } else if (opcode.equals("cancel")) {
                 Integer orderId = Integer.parseInt(tokens[1]);
                 response = server.cancel(orderId);
-            } else if(opcode.equals("search")){
+            } else if (opcode.equals("search")) {
                 String username = tokens[1];
                 response = server.search(username);
             } else {
