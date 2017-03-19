@@ -6,7 +6,6 @@ import java.util.*;
 import controller.Server;
 import model.*;
 import network.ServerTCPListener;
-import server.*;
 
 /** ServerMessenger
  * @author ronny <br>
@@ -20,11 +19,10 @@ public class ServerMessenger extends Messenger {
     private Server server;
     private Integer serverId;
     private ServerTag serverTag;
-    
+
     // intra-server communication
     private Set<Socket> channels;
-    
-    
+
     // Lamport's Algorithm
     private Integer numAcks = 0;
     private LamportClock timestamp;
@@ -79,10 +77,10 @@ public class ServerMessenger extends Messenger {
     protected String getMetadataFormat() {
         return "<serverId> <numServers> <inventory_path>";
     }
-    
+
     /******************* Lamport's Clock Methods *************************/
-    
-    private void request(){
-        
+
+    private void request() {
+
     }
 }

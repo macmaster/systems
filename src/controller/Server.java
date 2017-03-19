@@ -1,6 +1,5 @@
 package controller;
 
-
 /** Server.java
  * By: Taylor Schmidt and Ronald Macmaster
  * UT-EID: trs2277   and    rpm953
@@ -20,7 +19,7 @@ import model.Order;
 public class Server {
 
     // server networking
-    protected String filename;
+    public String filename;
     private ServerMessenger messenger;
 
     // server records
@@ -197,7 +196,6 @@ public class Server {
                     // update product record
                     inventory.put(product, quantity);
                 }
-
             }
 
         } catch (IOException e) {

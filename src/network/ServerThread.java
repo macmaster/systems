@@ -1,6 +1,5 @@
 package network;
 
-
 /** ServerThread.java
  * By: Taylor Schmidt and Ronald Macmaster
  * UT-EID: trs2277   and    rpm953
@@ -18,13 +17,6 @@ public class ServerThread extends Thread {
 
     private Server server;
     private Socket socket;
-    private DatagramPacket packet;
-
-    private ConnectionMode mode;
-
-    private enum ConnectionMode {
-        TCP, UDP
-    };
 
     /** ServerThread <br>
      * 
@@ -34,28 +26,11 @@ public class ServerThread extends Thread {
     public ServerThread(Server server, Socket socket) {
         this.server = server;
         this.socket = socket;
-        this.mode = ConnectionMode.TCP;
     }
 
-    /** ServerThread <br>
-     * 
-     * Constructs a new ServerThread Object. <br>
-     * Services a UDP packet.
-     */
-    public ServerThread(Server server, DatagramPacket packet) {
-        this.server = server;
-        this.packet = packet;
-        this.mode = ConnectionMode.UDP;
-    }
-
+    // service TCP Socket
     public void run() {
-        if (mode.equals(ConnectionMode.TCP)) {
-            // service TCP Socket
-            this.serviceTCP();
-        } else if (mode.equals(ConnectionMode.UDP)) {
-            // service UDP Socket
-            this.serviceUDP();
-        }
+        this.serviceTCP();
     }
 
     /**
@@ -85,34 +60,6 @@ public class ServerThread extends Thread {
             }
         } catch (IOException err) {
             System.out.println("Error servicing TCP Client request. exiting...");
-            err.printStackTrace();
-        }
-    }
-
-    /**
-     * serviceUDP()
-     * 
-     * Connectionless UDP packets. <br>
-     * Sends a response packet.
-     */
-    public void serviceUDP() {
-        try (DatagramSocket socket = new DatagramSocket()) {
-            String command = new String(packet.getData());
-            System.out.println("UDP Service: " + command);
-
-            // execute server command
-            String response = execute(command);
-            byte[] data = response.getBytes();
-            int length = data.length;
-
-            // send return packet with command response.
-            DatagramPacket returnPacket = new DatagramPacket(data, length);
-            returnPacket.setAddress(packet.getAddress());
-            returnPacket.setPort(packet.getPort());
-            socket.send(returnPacket);
-            socket.close();
-        } catch (IOException err) {
-            System.err.println("Error servicing UDP request. exiting...");
             err.printStackTrace();
         }
     }

@@ -49,11 +49,11 @@ public class ClientMessenger extends Messenger {
      * @see Messenger#getMetadataFormat()
      */
     @Override
-    protected String getMetadataFormat() {
+    public String getMetadataFormat() {
         return "<numServers>";
     }
     
-    protected void hopServers(){
+    public void hopServers(){
         serverId += 1;
         if(serverId > numServers){
             System.err.println("Out of servers to connect to. exiting...");
@@ -61,7 +61,7 @@ public class ClientMessenger extends Messenger {
         }
     }
 
-    protected InetAddress getServerAddress() {
+    public InetAddress getServerAddress() {
         InetAddress address = null;
         do {
             try {
@@ -75,7 +75,7 @@ public class ClientMessenger extends Messenger {
         return address;
     }
 
-    protected Integer getServerPort() {
+    public Integer getServerPort() {
         return getServerTag(serverId).getPort();
     }
 
