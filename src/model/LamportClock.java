@@ -7,7 +7,7 @@ import java.util.regex.*;
  * Timestamp of a process according to lamport's clock.
  * 
  */
-public class LamportClock {
+public class LamportClock implements Comparable {
 
     private Integer timestamp;
     private Integer processId;
@@ -87,16 +87,17 @@ public class LamportClock {
      * @return < 1 if this clock timestamp is less than other clock timestamp.
      * @return 0 if they are equal.
      */
-    public int compareTo(LamportClock stamp) {
+    @Override
+    public int compareTo(Object stamp) {
         if (stamp == null) {
             return 1;
-        } else if (timestamp > stamp.timestamp) {
+        } else if (timestamp > ((LamportClock) stamp).timestamp) {
             return 1;
-        } else if (timestamp < stamp.timestamp) {
+        } else if (timestamp < ((LamportClock) stamp).timestamp) {
             return -1;
-        } else if (processId > stamp.processId) {
+        } else if (processId > ((LamportClock) stamp).processId) {
             return 1;
-        } else if (processId < stamp.processId) {
+        } else if (processId < ((LamportClock) stamp).processId) {
             return -1;
         } else {
             return 0;

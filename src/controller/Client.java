@@ -23,7 +23,7 @@ public class Client {
     }
 
     public static void main(String[] args) {
-        System.out.println("\n\n/*** Online Shopping Client ***/");
+        System.out.println("/*** Online Shopping Client ***/");
         try (InputStreamReader stream = new InputStreamReader(System.in);
              BufferedReader reader = new BufferedReader(stream);) {
             // kick-start client
@@ -148,6 +148,7 @@ public class Client {
                 this.out.println("exit");
                 this.disconnectFromServer();
                 System.out.println("Closed connection to server.");
+                System.exit(0); // finished.
                 break;
             case "connect":
                 this.connectToServer();
