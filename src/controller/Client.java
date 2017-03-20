@@ -101,7 +101,10 @@ public class Client {
             this.out.println(contents);
             System.out.println("Waiting for server response... (MESSAGE RECEIVED)");
             String response = this.in.readLine();
-            this.socket.setSoTimeout(0); // turn off timeout temporarily. TODO: confirm this is ok?
+            if (response == null) { // server has closed your connection. fault.
+                throw new SocketTimeoutException();
+            } // TODO: confirm this is ok?
+            this.socket.setSoTimeout(0); // turn off timeout temporarily.
             boolean first = true;
             while (true) {
                 response = this.in.readLine();
