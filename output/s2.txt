@@ -1,3 +1,26 @@
 Starting the inventory server...
 Enter the metadata string (<serverId> <numServers> <inventory_path>): Server tag format: <ip_address>:<port>
-Enter details for server (1): Enter details for server (2): 
+Enter details for server (1): Enter details for server (2): TCP Service: request (0, 1)
+TCP Service: exit
+TCP Service: release (2, 1)
+TCP Service: exit
+TCP Service: request (3, 1)
+TCP Service: exit
+TCP Service: release (5, 1)
+TCP Service: exit
+TCP Service: request (6, 1)
+TCP Service: exit
+TCP Service: release (8, 1)
+TCP Service: exit
+TCP Service: request (9, 1)
+TCP Service: exit
+TCP Service: release (11, 1)
+TCP Service: exit
+TCP Service: request (12, 1)
+TCP Service: exit
+TCP Service: release (14, 1)
+TCP Service: exit
+TCP Service: request (15, 1)
+TCP Service: exit
+TCP Service: release (17, 1)
+TCP Service: exit

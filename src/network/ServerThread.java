@@ -56,8 +56,8 @@ public class ServerThread extends Thread {
             // continually service tcp connection.
             LamportClock timestamp = null;
             String command = "", response = "";
-            pinger = new KeepAliveThread(ostream); // keep alive thread
             while ((command = reader.readLine()) != null) {
+                pinger = new KeepAliveThread(ostream); // keep alive thread
                 ostream.println("ping"); // 100ms acknowledgement.
                 System.out.println("TCP Service: " + command);
                 if (command.equals("exit")) {

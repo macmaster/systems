@@ -100,7 +100,7 @@ public class Client {
             while (true) {
                 String response = this.in.readLine();
                 if (response == null) {
-                    System.out.println("Server crashed.");
+                    System.err.println("Server crashed.");
                     break;
                 } else if (response.equals("ping")) {
                     System.out.println("Server sent keep alive.");
