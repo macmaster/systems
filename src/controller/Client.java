@@ -12,7 +12,6 @@ public class Client {
     private PrintWriter out;
     private BufferedReader in;
 
-    // TODO: implement server queue and client messenger.
     private ClientMessenger messenger;
 
     public Client() {
@@ -24,8 +23,7 @@ public class Client {
 
     public static void main(String[] args) {
         System.out.println("/*** Online Shopping Client ***/");
-        try (InputStreamReader stream = new InputStreamReader(System.in);
-             BufferedReader reader = new BufferedReader(stream);) {
+        try (InputStreamReader stream = new InputStreamReader(System.in); BufferedReader reader = new BufferedReader(stream);) {
             // kick-start client
             Client client = new Client();
             client.connectToServer();
@@ -99,7 +97,8 @@ public class Client {
     public void sendTCPRequest(String contents) throws IOException {
         try {
             this.out.println(contents);
-            System.out.println("Waiting for server response... (MESSAGE RECEIVED)");
+            // System.out.println("Waiting for server response... (MESSAGE
+            // RECEIVED)");
             String response = this.in.readLine();
             if (response == null) { // server has closed your connection. fault.
                 throw new SocketTimeoutException();

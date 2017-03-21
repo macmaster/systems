@@ -2,11 +2,11 @@ package messenger;
 
 import java.io.*;
 import java.net.*;
-import java.util.*;
+import java.util.PriorityQueue;
 
 import controller.Server;
 import model.*;
-import network.ServerTCPListener;
+import network.*;
 
 /** ServerMessenger
  * @author ronny <br>
@@ -102,7 +102,10 @@ public class ServerMessenger extends Messenger {
                     writer.println("exit");
 
                     // message acknowledgement
-                    reader.readLine(); // 100ms timeout.
+                    if (reader.readLine() == null) { // 100ms timeout.
+                        socket.close();
+                        throw new SocketTimeoutException();
+                    }
                     this.timestamp.increment();
                     writer.close();
                     reader.close();

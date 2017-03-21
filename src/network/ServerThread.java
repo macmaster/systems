@@ -23,6 +23,9 @@ public class ServerThread extends Thread {
     private ServerMessenger messenger;
     private static ReentrantLock requestLock = new ReentrantLock(true);
 
+    // KeepAliveThread pinger
+    private KeepAliveThread pinger;
+
     /** ServerThread <br>
      * 
      * Constructs a new ServerThread Object. <br>
@@ -53,12 +56,16 @@ public class ServerThread extends Thread {
             // continually service tcp connection.
             LamportClock timestamp = null;
             String command = "", response = "";
+            pinger = new KeepAliveThread(ostream); // keep alive thread
             while ((command = reader.readLine()) != null) {
-                ostream.println("MESSAGE RECEIVED"); // 100ms acknowledgement.
+                ostream.println("ping"); // 100ms acknowledgement.
                 System.out.println("TCP Service: " + command);
                 if (command.equals("exit")) {
                     socket.close();
                     break; // finished socket execution.
+                } else if (command.equals("ping")) {
+                    // DEBUG: rec ping..
+                    System.out.println("Receieved a ping...");
                 } else if (command.startsWith("request")) {
                     // service intraserver request.
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
@@ -75,11 +82,13 @@ public class ServerThread extends Thread {
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
                     messenger.receiveAcknowledgement(timestamp);
                 } else if (command.startsWith("purchase") || command.startsWith("cancel")) {
+                    pinger.start();
                     requestLock.lock(); // request critical section
                     messenger.request();
                     response = execute(command);
                     messenger.release(command);
                     requestLock.unlock(); // release critical section
+                    pinger.kill();
                     ostream.println(response);
                     ostream.println("EOT");
                 } else { // execute server command. (list or search)

@@ -13,13 +13,21 @@ public class KeepAliveThread extends Thread {
         this.pw = pw;
     }
 
-    public void kill() { self.alive = false; }
+    public void kill() {
+        this.alive = false;
+    }
 
-    public void run() { keepConnectionAlive(); }
+    @Override
+    public void run() {
+        this.alive = true;
+        keepConnectionAlive();
+    }
 
     private void keepConnectionAlive() {
         while (true) {
-            if (!alive) { break; }
+            if (!alive) {
+                break;
+            }
             try {
                 Thread.sleep(50);
                 pw.println("ping");
