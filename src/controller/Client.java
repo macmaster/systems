@@ -125,10 +125,8 @@ public class Client {
         } catch (SocketTimeoutException signal) {
             // timeout, server is dead. switch servers.
             refreshConnection();
-            // resend command.
-            // TODO: Swap "resending command" to "printing failure and prompting
-            // again?"
             sendTCPRequest(contents);
+            // resend command.
         }
         this.socket.setSoTimeout(100); // turn timeout back on. TODO: confirm
                                        // this is ok?

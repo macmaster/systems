@@ -124,7 +124,7 @@ public class ServerThread extends Thread {
         } catch (Exception err) {
             System.err.println("invalid server command: " + command);
             response = "invalid server command: " + command;
-            err.printStackTrace();
+            // err.printStackTrace();
         }
 
         // client response
