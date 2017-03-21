@@ -100,27 +100,20 @@ public class Client {
         try {
             this.out.println(contents);
             System.out.println("Waiting for server response... (MESSAGE RECEIVED)");
-            String response = this.in.readLine();
-            if (response == null) { // server has closed your connection. fault.
-                throw new SocketTimeoutException();
-            } // TODO: confirm this is ok?
-            this.socket.setSoTimeout(0); // turn off timeout temporarily.
-            boolean first = true;
+            String response;
             while (true) {
                 response = this.in.readLine();
                 if (response == null) {
-                    System.out.println("Server returned null.");
+                    System.out.println("Server crashed.");
                     break;
-                }
-                if (response.equals("EOT")) {
+                } else if (response.equals("ping")) {
+                    System.out.println("Server sent keep alive.");
+                } else if (response.equals("EOT")) {
                     System.out.println("End of server response.");
                     break;
+                } else {
+                    System.out.println(response);
                 }
-                if (first) {
-                    System.out.println("Server response:");
-                    first = false;
-                }
-                System.out.println(response);
             }
         } catch (SocketTimeoutException signal) {
             // timeout, server is dead. switch servers.
@@ -128,8 +121,6 @@ public class Client {
             sendTCPRequest(contents);
             // resend command.
         }
-        this.socket.setSoTimeout(100); // turn timeout back on. TODO: confirm
-                                       // this is ok?
     }
 
     public void execute(String cmd) throws IOException {
