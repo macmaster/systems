@@ -85,14 +85,14 @@ public class ServerThread extends Thread {
                     command = reader.readLine();
                     execute(command);
                     messenger.receiveRelease(timestamp);
-                } 
-                
+                }
+
                 // service intraserver acknowledgement.
                 else if (command.startsWith("acknowledge")) {
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
                     messenger.receiveAcknowledgement(timestamp);
-                } 
-                
+                }
+
                 // commands that require acknowledgement.
                 else if (command.startsWith("purchase") || command.startsWith("cancel")) {
                     pinger.start();
@@ -105,8 +105,8 @@ public class ServerThread extends Thread {
                     pinger.kill();
                     ostream.println(response);
                     ostream.println("EOT");
-                } 
-                
+                }
+
                 // thread-safe commands.
                 else { // execute server command. (list or search)
                     response = execute(command);

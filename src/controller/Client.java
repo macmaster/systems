@@ -69,7 +69,7 @@ public class Client {
             }
             this.out = new PrintWriter(this.socket.getOutputStream(), true);
         } catch (IOException err) {
-            err.printStackTrace();
+            //err.printStackTrace();
             System.err.format("ERROR: can't connect to host %s on port %d %n", ia.getHostAddress(), port);
             System.err.println("Hopping servers.");
             refreshConnection(); // retry on new server.
@@ -101,7 +101,7 @@ public class Client {
                 String response = this.in.readLine();
                 if (response == null) {
                     System.err.println("Server crashed.");
-                    break;
+                    throw new SocketTimeoutException();
                 } else if (response.equals("ping")) {
                     System.out.println("Server sent keep alive.");
                 } else if (response.equals("EOT")) {

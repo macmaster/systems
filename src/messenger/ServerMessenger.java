@@ -2,11 +2,11 @@ package messenger;
 
 import java.io.*;
 import java.net.*;
-import java.util.PriorityQueue;
+import java.util.*;
 
 import controller.Server;
 import model.*;
-import network.*;
+import network.ServerTCPListener;
 
 /** ServerMessenger
  * @author ronny <br>
@@ -87,6 +87,7 @@ public class ServerMessenger extends Messenger {
 
         // create server channels.
         // send timestamp and request to all servers.
+        List<Integer> downedServers = new ArrayList<Integer>();
         for (Integer id : tags.keySet()) {
             try { // create a socket channel
                 if (id != serverId) {
@@ -113,9 +114,12 @@ public class ServerMessenger extends Messenger {
                 }
             } catch (IOException err) {
                 System.err.println("could not establish socket for server " + id);
-                tags.remove(id); // remove inactive server tag.
+                downedServers.add(id); // remove inactive server tag.
                 numServers = numServers - 1;
             }
+        }
+        for (Integer id : downedServers) {
+            tags.remove(id);
         }
 
         // wait for acknowledgements.
