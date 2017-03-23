@@ -1,4 +1,4 @@
-2 2 /home/ronny/git/systems/input/inventory.txt
+2 2 ../input/inventory.txt
 127.0.0.1:8025
 127.0.0.1:8030
 

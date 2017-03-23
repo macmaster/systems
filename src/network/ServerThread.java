@@ -60,41 +60,59 @@ public class ServerThread extends Thread {
                 pinger = new KeepAliveThread(ostream); // keep alive thread
                 ostream.println("ping"); // 100ms acknowledgement.
                 System.out.println("TCP Service: " + command);
+
+                // finished session.
                 if (command.equals("exit")) {
                     socket.close();
                     break; // finished socket execution.
-                } else if (command.equals("ping")) {
-                    // DEBUG: rec ping..
+                }
+
+                // DEBUG: rec ping.. ignore message.
+                else if (command.equals("ping")) {
                     System.out.println("Receieved a ping...");
-                } else if (command.startsWith("request")) {
-                    // service intraserver request.
+                }
+
+                // service intraserver request.
+                else if (command.startsWith("request")) {
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
                     messenger.receiveRequest(timestamp);
-                } else if (command.startsWith("release")) {
-                    // service intraserver release.
+                }
+
+                // service intraserver release.
+                else if (command.startsWith("release")) {
                     // execute the command before removing from queue.
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
                     command = reader.readLine();
                     execute(command);
                     messenger.receiveRelease(timestamp);
-                } else if (command.startsWith("acknowledge")) {
-                    // service intraserver acknowledgement.
+                } 
+                
+                // service intraserver acknowledgement.
+                else if (command.startsWith("acknowledge")) {
                     timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
                     messenger.receiveAcknowledgement(timestamp);
-                } else if (command.startsWith("purchase") || command.startsWith("cancel")) {
+                } 
+                
+                // commands that require acknowledgement.
+                else if (command.startsWith("purchase") || command.startsWith("cancel")) {
                     pinger.start();
                     requestLock.lock(); // request critical section
                     messenger.request();
                     response = execute(command);
+                    messenger.incrementClock();
                     messenger.release(command);
                     requestLock.unlock(); // release critical section
                     pinger.kill();
                     ostream.println(response);
                     ostream.println("EOT");
-                } else { // execute server command. (list or search)
+                } 
+                
+                // thread-safe commands.
+                else { // execute server command. (list or search)
                     response = execute(command);
                     ostream.println(response);
                     ostream.println("EOT");
+                    messenger.incrementClock();
                 }
             }
         } catch (IOException err) {

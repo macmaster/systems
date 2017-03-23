@@ -102,11 +102,11 @@ public class ServerMessenger extends Messenger {
                     writer.println("exit");
 
                     // message acknowledgement
+                    this.timestamp.increment();
                     if (reader.readLine() == null) { // 100ms timeout.
                         socket.close();
                         throw new SocketTimeoutException();
                     }
-                    this.timestamp.increment();
                     writer.close();
                     reader.close();
                     socket.close();
