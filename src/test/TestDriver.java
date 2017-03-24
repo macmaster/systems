@@ -1,6 +1,6 @@
 package test;
 
-import model.LamportClock;
+import LamportClock;
 
 /** TestDriver
  * @author ronny <br>

@@ -1,4 +1,4 @@
-package network;
+
 
 /** ServerThread.java
  * By: Taylor Schmidt and Ronald Macmaster
@@ -11,10 +11,6 @@ package network;
 import java.io.*;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
-
-import controller.Server;
-import messenger.ServerMessenger;
-import model.LamportClock;
 
 public class ServerThread extends Thread {
 

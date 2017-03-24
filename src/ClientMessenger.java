@@ -1,4 +1,4 @@
-package messenger;
+
 import java.net.*;
 
 /** ClientMessenger

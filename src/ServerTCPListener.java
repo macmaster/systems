@@ -1,10 +1,8 @@
-package network;
+
 
 
 import java.io.*;
 import java.net.*;
-
-import controller.Server;
 
 public class ServerTCPListener extends Thread {
 	
