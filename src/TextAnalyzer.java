@@ -28,7 +28,7 @@ public class TextAnalyzer extends Configured implements Tool {
     public static class TextMapper extends Mapper<LongWritable, Text, Text, CountPair> {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             // cleans the line. then maps a word count.
-            String line = value.toString();
+            String line = value.toString().toLowerCase();
             line.replaceAll("[^A-Za-z0-9]", " ");
             String[] words = line.split("[^A-Za-z0-9]+");
             for (int i = 0; i < words.length; i++) {
@@ -37,7 +37,8 @@ public class TextAnalyzer extends Configured implements Tool {
                     if (i != j) { // tally query word
                         Text queryWord = new Text(words[j]);
                         LongWritable count = new LongWritable(1);
-                        context.write(contextWord, new CountPair(queryWord, count));
+                        if (!(words[i].isEmpty() || words[j].isEmpty()))
+                            context.write(contextWord, new CountPair(queryWord, count));
                     }
                 }
             }
@@ -47,9 +48,11 @@ public class TextAnalyzer extends Configured implements Tool {
     // combiner's output key/value types have to be the same as those of mapper
     public static class TextCombiner extends Reducer<Text, CountPair, Text, CountPair> {
         public void reduce(Text key, Iterable<CountPair> tuples, Context context) throws IOException, InterruptedException {
-            System.out.println(key.toString());
+            // System.out.println(key.toString());
             for (CountPair tuple : tuples) {
-                System.out.format("combiner: (%s, %s)", key.toString(), tuple.toString());
+                // System.out.format("combiner: (%s, %s)%n", key.toString(),
+                // tuple.toString());
+                context.write(key, tuple);
             }
         }
     }
@@ -74,7 +77,8 @@ public class TextAnalyzer extends Configured implements Tool {
 
             System.out.println(key.toString());
             for (CountPair tuple : queryTuples) {
-                System.out.format("reducer: (%s, %s)", key.toString(), tuple.toString());
+                System.out.format("reducer: (%s, %s)%n", key.toString(), tuple.toString());
+                context.write(key, new Text(tuple.toString()));
             }
         }
     }
@@ -123,6 +127,13 @@ public class TextAnalyzer extends Configured implements Tool {
     public static class CountPair implements WritableComparable<CountPair> {
         public Text text;
         public LongWritable count;
+
+        /**
+         * Constructs a new Pair object. (left, right) <br>
+         */
+        public CountPair() {
+            set(new Text(""), new LongWritable(0));
+        }
 
         /**
          * Constructs a new Pair object. (left, right) <br>
