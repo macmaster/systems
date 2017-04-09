@@ -8,6 +8,8 @@
  */
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.fs.FileSystem;
@@ -37,7 +39,7 @@ public class TextAnalyzer extends Configured implements Tool {
                     if (i != j) { // tally query word
                         Text queryWord = new Text(words[j]);
                         LongWritable count = new LongWritable(1);
-                        if (!(words[i].isEmpty() || words[j].isEmpty()))
+                        if (!words[i].isEmpty() && !words[j].isEmpty())
                             context.write(contextWord, new CountPair(queryWord, count));
                     }
                 }
@@ -48,11 +50,21 @@ public class TextAnalyzer extends Configured implements Tool {
     // combiner's output key/value types have to be the same as those of mapper
     public static class TextCombiner extends Reducer<Text, CountPair, Text, CountPair> {
         public void reduce(Text key, Iterable<CountPair> tuples, Context context) throws IOException, InterruptedException {
-            // System.out.println(key.toString());
-            for (CountPair tuple : tuples) {
-                // System.out.format("combiner: (%s, %s)%n", key.toString(),
-                // tuple.toString());
-                context.write(key, tuple);
+            // Map of query words to total counts
+            Map<Text, Long> queryMap = new HashMap<>();
+            // Fill map with context words and their counts
+            for (CountPair curTuple : tuples) {
+                Text queryWordText = curTuple.text;
+                Long queryCountLong = curTuple.count.get();
+                // Update the current hashmap value
+                Long newCount = queryMap.getOrDefault(queryWordText, 0L) + queryCountLong;
+                queryMap.put(queryWordText, newCount);
+            }
+
+            // Write out to context
+            for (Text queryWordText : queryMap.keySet()) {
+                LongWritable count = new LongWritable(queryMap.get(queryWordText));
+                context.write(key, new CountPair(queryWordText, count));
             }
         }
     }
@@ -75,11 +87,20 @@ public class TextAnalyzer extends Configured implements Tool {
             // // Empty line for ending the current context key
             // context.write(emptyText, emptyText);
 
+            context.write(key, new Text(""));
+            for (CountPair curTuple : queryTuples) {
+                String queryWord = curTuple.text.toString();
+                Text queryWordText = new Text("<" + queryWord + ",");
+                Text countText = new Text(curTuple.count.toString() + ">");
+                context.write(queryWordText, countText);
+            }
+            /*
             System.out.println(key.toString());
             for (CountPair tuple : queryTuples) {
                 System.out.format("reducer: (%s, %s)%n", key.toString(), tuple.toString());
                 context.write(key, new Text(tuple.toString()));
             }
+            */
         }
     }
 
