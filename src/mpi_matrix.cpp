@@ -24,6 +24,9 @@ void printVector(vector<int> &ivector);
 void printMatrix(vector< vector<int> > &ivector);
 void ReadInput(vector<int> &ivector, vector< vector<int> > &imatrix);
 
+void master(int world_size);
+void slave(int rank);
+
 int main(int argc, char **argv){
 	// initialize MPI.
 	MPI_Init(NULL, NULL);
@@ -40,19 +43,13 @@ int main(int argc, char **argv){
 	printf("hello from processor: %s\n", processor_name);
 	printf("rank is %d out of %d processors.\n", world_rank, world_size);
 
-	// read in the inputs
-	vector<int> ivector;
-	vector< vector<int> > imatrix;
-	ReadInput(ivector, imatrix);
-
-	// print inputs (DEBUG)
-	printf("vector size: %d\n", ivector.size());
-	printVector(ivector);
-	printf("\n");
-	printf("matrix size: %d x %d\n", imatrix.size(), imatrix.at(0).size());
-	printMatrix(imatrix);
-	printf("\n");
-
+	// workload begins.
+	if(world_rank == 0){
+		master(world_size);
+	} else{
+		slave(world_rank);
+	}
+	
 	MPI_Finalize();
 }
 
@@ -116,3 +113,86 @@ void ReadInput(vector<int> &ivector, vector< vector<int> > &imatrix){
 	matrixFile.close();
 }
 
+/**
+ * processing work for the master process.
+ * read the input files.
+ * partition out the workload over the network.
+ * perform the extra chunk.
+ * collect the results.
+ * write the output file.
+ */
+void master(int procs){
+	// read in the inputs
+	vector<int> ivector;
+	vector< vector<int> > imatrix;
+	ReadInput(ivector, imatrix);
+	int n = imatrix.size(), m = ivector.size(); // rows, cols
+
+	// // print inputs (DEBUG)
+	// printf("vector size: %d\n", ivector.size());
+	// printVector(ivector);
+	// printf("\n");
+	// printf("matrix size: %d x %d\n", imatrix.size(), imatrix.at(0).size());
+	// printMatrix(imatrix);
+	// printf("\n");
+	
+	if(procs - 1 == 0){
+		// solo it...
+		printf("solo it...\n");
+	} 
+	
+	else{ // send out assignments.
+		int stride = (n / procs), extra = (n % procs);
+		for(int i = 1; i < procs; i++){
+			int dim[2] = {stride, m}; // send dimensions
+			MPI_Send(dim, 2, MPI_INT, i, 0, MPI_COMM_WORLD);
+
+			// send the vector
+			MPI_Send(&ivector[0], m, MPI_INT, i, 0, MPI_COMM_WORLD);
+
+			// send matrix row
+			int start = (i * stride) + extra;
+			for(int j =0; j < stride; j++){
+				int *buffer = &imatrix[start + j][0]; // pointer to row.
+				MPI_Send(buffer, m, MPI_INT, i, j + 1, MPI_COMM_WORLD);
+			}
+
+		}
+	}
+
+}
+
+
+
+/**
+ * receive the partition from the master.
+ * perform the vector operations.
+ * send it back to the master.
+ */
+void slave(int rank){	
+	int rows = 0, cols = 0, dim[2]; // dim = {rows, cols}
+	MPI_Recv(dim, 2, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	rows = dim[0]; cols = dim[1]; // set dimensions.
+
+	int buffer[cols]; // receive the vector input.
+	MPI_Recv(buffer, cols, MPI_INT, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	vector<int> ivector(cols);
+	for(int i = 0; i < cols; i++){
+		ivector[i] = buffer[i];
+	}
+
+	// receive matrix section input.
+	vector< vector<int> > imatrix(rows, vector<int>(cols));
+	for(int j = 0; j < rows; j++){
+		MPI_Recv(buffer, cols, MPI_INT, 0, j + 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		for(int k = 0; k < cols; k++){
+			imatrix[j][k] = buffer[k];
+		}
+	}
+
+	// DEBUG routine:
+	printf("rank: %d. \t dim: %d x %d", rank, rows, cols);
+	printf("ivector:\n"); printVector(ivector);
+	printf("imatrix:\n"); printMatrix(imatrix);
+
+}
