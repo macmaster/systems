@@ -8,8 +8,7 @@
  */
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.fs.FileSystem;
@@ -25,22 +24,27 @@ public class TextAnalyzer extends Configured implements Tool {
 
     // The four template data types are:
     // <Input Key Type, Input Value Type, Output Key Type, Output Value Type>
-    // reference:
-    // https://learnhadoopwithme.wordpress.com/tag/writablecomparable/
+    // reference: https://learnhadoopwithme.wordpress.com/tag/writablecomparable/
     public static class TextMapper extends Mapper<LongWritable, Text, Text, CountPair> {
         public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
             // cleans the line. then maps a word count.
             String line = value.toString().toLowerCase();
             line.replaceAll("[^A-Za-z0-9]", " ");
             String[] words = line.split("[^A-Za-z0-9]+");
+            Set<String> explored = new HashSet<String>();
+
+            // search each unique context word.
             for (int i = 0; i < words.length; i++) {
                 Text contextWord = new Text(words[i]);
-                for (int j = 0; j < words.length; j++) {
-                    if (i != j) { // tally query word
-                        Text queryWord = new Text(words[j]);
-                        LongWritable count = new LongWritable(1);
-                        if (!words[i].isEmpty() && !words[j].isEmpty())
-                            context.write(contextWord, new CountPair(queryWord, count));
+                if (explored.add(contextWord.toString())) {
+                    for (int j = 0; j < words.length; j++) {
+                        if (i != j) { // tally query word
+                            Text queryWord = new Text(words[j]);
+                            LongWritable count = new LongWritable(1);
+                            if (!words[i].isEmpty() && !words[j].isEmpty()) {
+                                context.write(contextWord, new CountPair(queryWord, count));
+                            }
+                        }
                     }
                 }
             }
@@ -51,20 +55,29 @@ public class TextAnalyzer extends Configured implements Tool {
     public static class TextCombiner extends Reducer<Text, CountPair, Text, CountPair> {
         public void reduce(Text key, Iterable<CountPair> tuples, Context context) throws IOException, InterruptedException {
             // Map of query words to total counts
-            Map<Text, Long> queryMap = new HashMap<>();
+            // group multiple tuples -> single tuple with single count.
+            Map<String, Long> queryMap = new HashMap<>();
             // Fill map with context words and their counts
-            for (CountPair curTuple : tuples) {
-                Text queryWordText = curTuple.text;
-                Long queryCountLong = curTuple.count.get();
+            for (CountPair tuple : tuples) {
+                String word = tuple.text.toString();
+                Long tally = tuple.count.get();
+
                 // Update the current hashmap value
-                Long newCount = queryMap.getOrDefault(queryWordText, 0L) + queryCountLong;
-                queryMap.put(queryWordText, newCount);
+                if (queryMap.containsKey(word)) {
+                    Long count = queryMap.get(word);
+                    queryMap.put(word, count + tally);
+                } else { // first cache-hit in map.
+                    queryMap.put(word, tally);
+                }
             }
 
-            // Write out to context
-            for (Text queryWordText : queryMap.keySet()) {
-                LongWritable count = new LongWritable(queryMap.get(queryWordText));
-                context.write(key, new CountPair(queryWordText, count));
+            // Write out to context. (emit query cache)
+            for (String word : queryMap.keySet()) {
+                Text contextWord = new Text(key.toString());
+                Text queryWord = new Text(word);
+                LongWritable count = new LongWritable(queryMap.get(word));
+                context.write(contextWord, new CountPair(queryWord, count));
+                //System.out.format("combiner: (%s, %s)%n", contextWord, new CountPair(queryWord, count));
             }
         }
     }
@@ -72,35 +85,30 @@ public class TextAnalyzer extends Configured implements Tool {
     // input is the output key / value types of your mapper function
     public static class TextReducer extends Reducer<Text, CountPair, Text, Text> {
         public void reduce(Text key, Iterable<CountPair> queryTuples, Context context) throws IOException, InterruptedException {
-            // // Implementation of you reducer function
-            //
-            // // Write out the results; you may change the following example
-            // // code to fit with your reducer function.
-            // // Write out the current context key
-            // context.write(key, emptyText);
-            // // Write out query words and their count
-            // for (String queryWord : map.keySet()) {
-            // String count = map.get(queryWord).toString() + ">";
-            // queryWordText.set("<" + queryWord + ",");
-            // context.write(queryWordText, new Text(count));
-            // }
-            // // Empty line for ending the current context key
-            // context.write(emptyText, emptyText);
-
-            context.write(key, new Text(""));
-            for (CountPair curTuple : queryTuples) {
-                String queryWord = curTuple.text.toString();
-                Text queryWordText = new Text("<" + queryWord + ",");
-                Text countText = new Text(curTuple.count.toString() + ">");
-                context.write(queryWordText, countText);
-            }
-            /*
-            System.out.println(key.toString());
+            // group multiple tuples -> single tuple with single count.
+            Map<String, Long> queryMap = new HashMap<>();
             for (CountPair tuple : queryTuples) {
-                System.out.format("reducer: (%s, %s)%n", key.toString(), tuple.toString());
-                context.write(key, new Text(tuple.toString()));
+                String word = tuple.text.toString();
+                Long tally = tuple.count.get();
+                if (queryMap.containsKey(word)) {
+                    Long count = queryMap.get(word);
+                    queryMap.put(word, count + tally);
+                } else { // first cache-hit in map.
+                    queryMap.put(word, tally);
+                }
             }
-            */
+
+            // emit query cache.
+            Text contextWord = new Text(key.toString());
+            StringBuilder textTable = new StringBuilder("\n");
+            for (String word : queryMap.keySet()) {
+                Text queryWord = new Text(word);
+                LongWritable count = new LongWritable(queryMap.get(word));
+                textTable.append(new Text(new CountPair(queryWord, count).toString()) + "\n");
+            }
+
+            // emit query table results for context word.
+            context.write(contextWord, new Text(textTable.toString()));
         }
     }
 
