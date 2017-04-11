@@ -1,4 +1,5 @@
 CC = mpicxx
+CXX = mpicxx
 CFLAGS = -g # -Wall -pedantic
 SRC = mpi_matrix.cpp
 BACKUP = $(SRC:.cpp=.cpp~)

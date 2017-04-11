@@ -1,0 +1,9 @@
+#!/bin/bash
+#SBATCH -J "ronnyz mpi job"
+#SBATCH -o "job_%j"
+#SBATCH -n 3 # number of mpi tasks requested
+#SBATCH -p normal
+#SBATCH -t 00:00:20
+#SBATCH -A EE-360P-Concurrent-a
+ibrun ./main
+

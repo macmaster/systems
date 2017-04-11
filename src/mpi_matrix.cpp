@@ -151,10 +151,10 @@ void master(int procs){
 			MPI_Send(&ivector[0], m, MPI_INT, i, 0, MPI_COMM_WORLD);
 
 			// send matrix row
-			int start = (i * stride) + extra;
-			for(int j =0; j < stride; j++){
-				int *buffer = &imatrix[start + j][0]; // pointer to row.
-				MPI_Send(buffer, m, MPI_INT, i, j + 1, MPI_COMM_WORLD);
+			int start = ((i - 1) * stride) + extra;
+			for(int j = 0; j < stride; j++){
+				// printf("rank 0: sending msg from %d with size %d, stride %d, extra %d\n", start + j, n, stride, extra);
+				MPI_Send(&imatrix[start + j][0], m, MPI_INT, i, j + 1, MPI_COMM_WORLD);
 			}
 
 		}
