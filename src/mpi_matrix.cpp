@@ -23,6 +23,7 @@ using namespace std;
 void printVector(vector<int> &ivector);
 void printMatrix(vector< vector<int> > &ivector);
 void ReadInput(vector<int> &ivector, vector< vector<int> > &imatrix);
+void WriteOutput(vector<int> &result);
 
 void master(int world_size);
 void slave(int rank);
@@ -115,6 +116,19 @@ void ReadInput(vector<int> &ivector, vector< vector<int> > &imatrix){
 }
 
 /**
+ * writes the output vector to a file.
+ * the file is result.txt
+ */
+void WriteOutput(vector<int> &result){
+	ofstream resultFile("result.txt");
+	for(int i = 0; i < result.size(); i++){
+		if(i != 0) resultFile << " ";
+		resultFile << result[i];
+	}
+	resultFile.close();
+}
+
+/**
  * processing work for the master process.
  * read the input files.
  * partition out the workload over the network.
@@ -190,6 +204,7 @@ void master(int procs){
 	printf("Number of processes: %d\n", procs);
 	printf("result vector: "); printVector(result);
 	printf("\n");
+	WriteOutput(result);
 
 }
 
