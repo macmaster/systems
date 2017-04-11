@@ -1,0 +1,51 @@
+TACC: Starting up job 8416081
+TACC: Setting up parallel environment for MVAPICH2+mpispawn.
+TACC: Starting parallel tasks...
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+rank is 8 out of 21 processors.
+rank is 10 out of 21 processors.
+rank is 9 out of 21 processors.
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+rank is 3 out of 21 processors.
+hello from processor: c504-401.stampede.tacc.utexas.edu
+hello from processor: c504-401.stampede.tacc.utexas.edu
+rank is 1 out of 21 processors.
+hello from processor: c504-401.stampede.tacc.utexas.edu
+rank is 4 out of 21 processors.
+rank is 2 out of 21 processors.
+rank is 0 out of 21 processors.
+hello from processor: c504-401.stampede.tacc.utexas.edu
+rank is 5 out of 21 processors.
+rank is 7 out of 21 processors.
+rank is 6 out of 21 processors.
+rows in input matrix: 6
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 20 out of 21 processors.
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 19 out of 21 processors.
+hello from processor: c504-403.stampede.tacc.utexas.edu
+hello from processor: c504-403.stampede.tacc.utexas.edu
+hello from processor: c504-403.stampede.tacc.utexas.edu
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 13 out of 21 processors.
+rank is 11 out of 21 processors.
+rank is 18 out of 21 processors.
+rank is 17 out of 21 processors.
+hello from processor: c504-403.stampede.tacc.utexas.edu
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 15 out of 21 processors.
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 14 out of 21 processors.
+hello from processor: c504-403.stampede.tacc.utexas.edu
+rank is 12 out of 21 processors.
+rank is 16 out of 21 processors.
+Number of processes: 21
+result vector: { 138, 104, 4858, -791871338, 4408, 11816 }
+
+ 
+TACC: Shutdown complete. Exiting.
