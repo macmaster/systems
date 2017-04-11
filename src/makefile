@@ -1,7 +1,7 @@
 CC = mpicxx
 CXX = mpicxx
 CFLAGS = -g # -Wall -pedantic
-SRC = mpi_matrix.cpp
+SRC = main.cpp
 BACKUP = $(SRC:.cpp=.cpp~)
 OBJ = $(SRC:.cpp=.o)
 MAIN = main
