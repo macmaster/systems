@@ -8,6 +8,7 @@
  */
 
 import java.io.*;
+import java.util.*;
 
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.fs.FileSystem;
@@ -48,11 +49,25 @@ public class TextAnalyzer extends Configured implements Tool {
     // combiner's output key/value types have to be the same as those of mapper
     public static class TextCombiner extends Reducer<Text, CountPair, Text, CountPair> {
         public void reduce(Text key, Iterable<CountPair> tuples, Context context) throws IOException, InterruptedException {
-            // System.out.println(key.toString());
+            // group multiple tuples -> single tuple with single count.
+            Map<String, Integer> queryCounts = new HashMap<String, Integer>();
             for (CountPair tuple : tuples) {
-                // System.out.format("combiner: (%s, %s)%n", key.toString(),
-                // tuple.toString());
-                context.write(key, tuple);
+                String word = tuple.text.toString();
+                if (queryCounts.containsKey(word)) {
+                    Integer count = queryCounts.get(word);
+                    queryCounts.put(word, count + 1);
+                } else { // first cache-hit in map.
+                    queryCounts.put(word, 1);
+                }
+            }
+
+            // emit query cache.
+            for (String word : queryCounts.keySet()) {
+                Text contextWord = new Text(key.toString());
+                Text queryWord = new Text(word);
+                LongWritable count = new LongWritable(queryCounts.get(word));
+                context.write(contextWord, new CountPair(queryWord, count));
+                //System.out.format("combiner: (%s, %s)%n", contextWord, new CountPair(queryWord, count));
             }
         }
     }
@@ -75,11 +90,30 @@ public class TextAnalyzer extends Configured implements Tool {
             // // Empty line for ending the current context key
             // context.write(emptyText, emptyText);
 
-            System.out.println(key.toString());
+            // group multiple tuples -> single tuple with single count.
+            Map<String, Long> queryCounts = new HashMap<String, Long>();
             for (CountPair tuple : queryTuples) {
-                System.out.format("reducer: (%s, %s)%n", key.toString(), tuple.toString());
-                context.write(key, new Text(tuple.toString()));
+                String word = tuple.text.toString();
+                Long tally = tuple.count.get();
+                if (queryCounts.containsKey(word)) {
+                    Long count = queryCounts.get(word);
+                    queryCounts.put(word, count + tally);
+                } else { // first cache-hit in map.
+                    queryCounts.put(word, tally);
+                }
             }
+
+            // emit query cache.
+            Text contextWord = new Text(key.toString());
+            StringBuilder textTable = new StringBuilder("\n"); 
+            for (String word : queryCounts.keySet()) {
+                Text queryWord = new Text(word);
+                LongWritable count = new LongWritable(queryCounts.get(word));
+                textTable.append(new Text(new CountPair(queryWord, count).toString()) + "\n");
+            }
+            
+            // emit query table results for context word.
+            context.write(contextWord, new Text(textTable.toString()));
         }
     }
 
@@ -171,11 +205,6 @@ public class TextAnalyzer extends Configured implements Tool {
         @Override
         public String toString() {
             return String.format("<%s, %d>", text.toString(), count.get());
-        }
-
-        @Override
-        public int hashCode() {
-            return (text.hashCode() * 7) + (count.hashCode() * 11);
         }
 
         @Override
