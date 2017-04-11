@@ -192,7 +192,7 @@ void slave(int rank){
 
 	// DEBUG routine:
 	printf("rank: %d. \t dim: %d x %d\n", rank, rows, cols);
-	printf("ivector:\n"); printVector(ivector);
+	//printf("ivector:\n"); printVector(ivector);
 	printf("imatrix:\n"); printMatrix(imatrix);
 
 }
