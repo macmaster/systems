@@ -142,7 +142,7 @@ void master(int procs){
 	} 
 	
 	else{ // send out assignments.
-		int stride = (n / procs), extra = (n % procs);
+		int stride = (n / (procs - 1)), extra = (n % (procs - 1));
 		for(int i = 1; i < procs; i++){
 			int dim[2] = {stride, m}; // send dimensions
 			MPI_Send(dim, 2, MPI_INT, i, 0, MPI_COMM_WORLD);
