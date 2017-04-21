@@ -1,11 +1,14 @@
+package messenger;
 
 import java.net.*;
 
 /** ClientMessenger
- * By: Taylor Schmidt and Ronald Macmaster
- * UT-EID: trs2277   and    rpm953
- * Date: 3/17/2017
+ * Lamport's fault-tolerant algorithm fault handler for client side.
  * 
+ * By: Gaurav Nagar, Hari Kosuru, 
+ * Taylor Schmidt, and Ronald Macmaster.
+ * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
+ * Date: 4/20/2017
  */
 public class ClientMessenger extends Messenger {
 

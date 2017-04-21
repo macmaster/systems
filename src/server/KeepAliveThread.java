@@ -1,9 +1,16 @@
+package server;
 
 
 import java.io.*;
 
-/**
- * Created by tschmidt on 3/20/17.
+/** KeepAliveThread
+ * mechanism to constantly ping a server and poll if it's awake.
+ * synchronous by its very nature.
+ * 
+ * By: Gaurav Nagar, Hari Kosuru, 
+ * Taylor Schmidt, and Ronald Macmaster.
+ * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
+ * Date: 4/20/2017
  */
 public class KeepAliveThread extends Thread {
     private PrintWriter pw;

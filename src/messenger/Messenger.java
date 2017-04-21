@@ -1,12 +1,19 @@
+package messenger;
 
 
 import java.io.*;
 import java.util.*;
 
+import model.ServerTag;
+
 /** Messenger
- * @author ronny <br>
- * TODO: Description
+ * General behavior to parse the server files upon startup.
+ * Stores server lookup information. 
  * 
+ * By: Gaurav Nagar, Hari Kosuru, 
+ * Taylor Schmidt, and Ronald Macmaster.
+ * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
+ * Date: 4/20/2017
  */
 public abstract class Messenger {
 
