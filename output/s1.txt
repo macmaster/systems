@@ -1,7 +1,18 @@
 Starting the inventory server...
 Enter the metadata string (<serverId> <numServers> <inventory_path>): Server tag format: <ip_address>:<port>
-Enter details for server (1): Enter details for server (2): TCP Service: list
-TCP Service: purchase ronny phone 1
-TCP Service: acknowledge (2, 2)
+Enter details for server (1): Enter details for server (2): Enter details for server (3): TCP Service: list
+TCP Service: list
+TCP Service: purchase ronny ps4 1
+TCP Service: acknowledge (3, 2)
+TCP Service: acknowledge (4, 3)
 TCP Service: exit
+TCP Service: exit
+TCP Service: search ronny
+TCP Service: cancel 1
+TCP Service: acknowledge (11, 2)
+TCP Service: exit
+TCP Service: acknowledge (12, 3)
+TCP Service: exit
+TCP Service: search ronny
+TCP Service: list
 TCP Service: exit

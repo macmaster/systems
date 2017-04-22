@@ -1,6 +1,11 @@
 package server;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -22,11 +27,17 @@ public class ServerThread extends Thread {
 	private ServerMessenger messenger;
 	private static ReentrantLock requestLock = new ReentrantLock(true);
 	
+	private DatagramPacket packet;
+	private ConnectionMode mode;
+	
+	private enum ConnectionMode {
+		TCP, UDP
+	};
+	
 	// KeepAliveThread pinger
 	private KeepAliveThread pinger;
 	
 	/** ServerThread <br>
-	 * 
 	 * Constructs a new ServerThread Object. <br>
 	 * Services a TCP Socket.
 	 */
@@ -34,15 +45,30 @@ public class ServerThread extends Thread {
 		this.server = server;
 		this.socket = socket;
 		this.messenger = server.getMessenger();
+		this.mode = ConnectionMode.TCP;
+	}
+	
+	/** ServerThread <br>
+	 * Constructs a new ServerThread Object. <br>
+	 * Services a UDP packet.
+	 */
+	public ServerThread(Server server, DatagramPacket packet) {
+		this.server = server;
+		this.packet = packet;
+		this.messenger = server.getMessenger();
+		this.mode = ConnectionMode.UDP;
 	}
 	
 	// service TCP Socket
 	public void run() {
-		this.serviceTCP();
+		if (mode.equals(ConnectionMode.TCP)) {
+			this.serviceTCP(); // service TCP Socket
+		} else if (mode.equals(ConnectionMode.UDP)) {
+			this.serviceUDP(); // service UDP Socket
+		}
 	}
 	
-	/**
-	 * serviceTCP()
+	/** serviceTCP()
 	 * 
 	 * Connection-based tcp socket. <br>
 	 * Writes to socket output.
@@ -122,10 +148,38 @@ public class ServerThread extends Thread {
 		}
 	}
 	
+	/** serviceUDP()
+	  * 
+	  * Connectionless UDP packets. <br>
+	  * Sends a response packet.
+	  * TODO: Update this function. It's OUT OF DATE!!!
+	  */
+	public void serviceUDP() {
+		try (DatagramSocket socket = new DatagramSocket()) {
+			String command = new String(packet.getData());
+			System.out.println("UDP Service: " + command);
+			
+			// execute server command
+			String response = execute(command);
+			byte[] data = response.getBytes();
+			int length = data.length;
+			
+			// send return packet with command response.
+			DatagramPacket returnPacket = new DatagramPacket(data, length);
+			returnPacket.setAddress(packet.getAddress());
+			returnPacket.setPort(packet.getPort());
+			socket.send(returnPacket);
+			socket.close();
+		} catch (IOException err) {
+			System.err.println("Error servicing UDP request. exiting...");
+			err.printStackTrace();
+		}
+	}
+	
 	/** execute()
-	 * 
-	 * Executes valid server command. <br>
-	 */
+	* 
+	* Executes valid server command. <br>
+	*/
 	public String execute(String command) {
 		String response = "";
 		String[] tokens = command.trim().split("\\s+");
