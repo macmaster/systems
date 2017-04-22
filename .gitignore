@@ -14,3 +14,7 @@ hs_err_pid*
 src/hw*
 input/*
 
+# intellij ignores
+.eml
+.iml
+.idea
