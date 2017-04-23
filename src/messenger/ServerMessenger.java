@@ -260,19 +260,19 @@ public class ServerMessenger extends Messenger {
 	    //send back to sending port of sender server
 	    List<Integer> downedServers = new ArrayList<Integer>();
 	    try {
-	        socket.connect(senderTag.getAddress(), senderTag.getUDPPort());
+	        socket.connect(senderTag.getAddress(), senderTag.getPort());
 	        socket.setSoTimeout(100);
 	        String buf = "leader " + leader + " " + timestamp.toString();
 	        DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
 	        incrementClock();
 	        sendPacket.setAddress(senderTag.getAddress());
-	        sendPacket.setPort(senderTag.getUDPPort());
+	        sendPacket.setPort(senderTag.getPort());
 	        socket.send(sendPacket);
-	        socket.close();
 	    } catch (IOException e) {
             System.err.println("could not establish socket for server " + senderId);
             downedServers.add(senderId); // remove inactive server tag.
             numServers = numServers - 1;
+            e.printStackTrace();
 	    }
 	    
 	    
@@ -287,13 +287,14 @@ public class ServerMessenger extends Messenger {
                     DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
                                                                    serverTag.getAddress(), serverTag.getUDPPort());
                     incrementClock();
+                    System.out.println(serverTag.getUDPPort());
                     socket.send(sendPacket);
-                    socket.close();
                 }
             } catch (IOException err) {
                 System.err.println("could not establish socket for server " + id);
                 downedServers.add(id); // remove inactive server tag.
                 numServers = numServers - 1;
+                err.printStackTrace();
             }
         }
         
@@ -326,12 +327,12 @@ public class ServerMessenger extends Messenger {
                                                                    serverTag.getAddress(), serverTag.getUDPPort());
                     incrementClock();
                     socket.send(sendPacket);
-                    socket.close();
                 }
             } catch (Exception err) {
                 System.err.println("could not establish socket for server " + id);
                 downedServers.add(id); // remove inactive server tag.
                 numServers = numServers - 1;
+                err.printStackTrace();
             }
         }
         
