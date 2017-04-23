@@ -13,6 +13,7 @@ hs_err_pid*
 /bin/
 src/hw*
 output/*
+server_kill.sh
 
 # intellij ignores
 .eml
