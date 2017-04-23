@@ -136,7 +136,7 @@ public class ServerThread extends Thread {
 			
 			// Parse ServerTag for reply.
 			String returnAddress = packet.getAddress().getHostAddress();
-			String tagString = String.format("<%s>:<%d>", returnAddress, packet.getPort());
+			String tagString = String.format("<%s>:<%d>", returnAddress, packet.getPort() - 1000);
 			ServerTag tag = ServerTag.parse(tagString);
 			
 			// DEBUG: rec ping.. ignore message.
