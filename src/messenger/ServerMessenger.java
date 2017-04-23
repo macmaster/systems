@@ -263,9 +263,10 @@ public class ServerMessenger extends Messenger {
 	        socket.connect(senderTag.getAddress(), senderTag.getUDPPort());
 	        socket.setSoTimeout(100);
 	        String buf = "leader " + leader + " " + timestamp.toString();
-	        DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
-	                                                       serverTag.getAddress(), serverTag.getUDPPort());
+	        DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
 	        incrementClock();
+	        sendPacket.setAddress(senderTag.getAddress());
+	        sendPacket.setPort(senderTag.getUDPPort());
 	        socket.send(sendPacket);
 	        socket.close();
 	    } catch (IOException e) {
