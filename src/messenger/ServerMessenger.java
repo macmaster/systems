@@ -30,7 +30,8 @@ public class ServerMessenger extends Messenger {
 	
 	//leader election
 	private Integer leader;
-	private Boolean leaderNotElected;
+	private Boolean isFirstLeaderElection;
+	private Integer numLeaderProposals;
 	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
@@ -216,22 +217,70 @@ public class ServerMessenger extends Messenger {
 	 */
 	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId){
 	    //update my timestamp
-	      Integer myts = this.timestamp.getTimestamp();
-	      Integer otherts = timestamp.getTimestamp();
-	      this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+	    Integer myts = this.timestamp.getTimestamp();
+	    Integer otherts = timestamp.getTimestamp();
+	    this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+	    
+	    //get sender info
+	    Integer senderId = timestamp.getProcessId();
+	    ServerTag senderTag = getServerTag(senderId);
 	    
 	    //check if leader process already started
-	    if (!leaderNotElected) {
+	    if (isFirstLeaderElection) {
+	        numLeaderProposals = 1;
 	        leader = Math.max(serverId, leaderId);
-	        firstLeaderElected = true;
+	        isFirstLeaderElection = false;
 	    } else {
 	        leader = Math.max(leader, leaderId);
-	        elected
 	    }
 	    
+	    //check if server received leader proposal from all others
+	    numLeaderProposals++;
+	    if (numLeaderProposals == numServers - 1) {
+	        isFirstLeaderElection = true; //for next leader election cycle
+	    }
+	    
+	    //send back to sending port of sender server
 	    
 	    
 	    
+	    //send to all other servers receiving ports
+	    List<Integer> downedServers = new ArrayList<Integer>();
+        for (Integer id : tags.keySet()) {
+            try { // create a socket channel
+                if (id != serverId && id != senderId) {
+                    ServerTag sender = tags.get(id);
+                    Socket socket = new Socket();
+                    socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort() + 100), 100);
+                    socket.setSoTimeout(100); // 100ms socket timeouts.
+                    
+                    // send request string with clock.
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                    writer.format("request %s%n", timestamp.toString());
+                    writer.println("exit");
+                    
+                    // message acknowledgement
+                    this.timestamp.increment();
+                    if (reader.readLine() == null) { // 100ms timeout.
+                        socket.close();
+                        throw new SocketTimeoutException();
+                    }
+                    writer.close();
+                    reader.close();
+                    socket.close();
+                }
+            } catch (IOException err) {
+                System.err.println("could not establish socket for server " + id);
+                downedServers.add(id); // remove inactive server tag.
+                numServers = numServers - 1;
+            }
+        }
+        
+        for (Integer id : downedServers) {
+            tags.remove(id);
+        }
+        
 	}
 	
 	/**
@@ -241,6 +290,14 @@ public class ServerMessenger extends Messenger {
 	public synchronized void startLeaderElection(){
 	    //send default serverId
 	    leader = serverId;
+	    isFirstLeaderElection = true;
+	    numLeaderProposals = 0;
+	    
+	    for (Integer id: tags.keySet()) {
+	        if (id != serverId) {
+	            
+	        }
+	    }
 	    
 	}
 	

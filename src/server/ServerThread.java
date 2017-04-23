@@ -6,11 +6,13 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
 
 import messenger.ServerMessenger;
 import model.LamportClock;
+import model.ServerTag;
 
 /** ServerThread
  * Services a server request.
@@ -91,33 +93,7 @@ public class ServerThread extends Thread {
 					socket.close();
 					break; // finished socket execution.
 				}
-				
-				// DEBUG: rec ping.. ignore message.
-				else if (command.equals("ping")) {
-					System.out.println("Receieved a ping...");
-				}
-				
-				// service intraserver request.
-				else if (command.startsWith("request")) {
-					timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-					messenger.receiveRequest(timestamp);
-				}
-				
-				// service intraserver release.
-				else if (command.startsWith("release")) {
-					// execute the command before removing from queue.
-					timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-					command = reader.readLine();
-					execute(command);
-					messenger.receiveRelease(timestamp);
-				}
-				
-				// service intraserver acknowledgement.
-				else if (command.startsWith("acknowledge")) {
-					timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-					messenger.receiveAcknowledgement(timestamp);
-				}
-				
+
 				// commands that require acknowledgement.
 				else if (command.startsWith("purchase") || command.startsWith("cancel")) {
 					pinger.start();
@@ -152,15 +128,57 @@ public class ServerThread extends Thread {
 	  * 
 	  * Connectionless UDP packets. <br>
 	  * Sends a response packet.
-	  * TODO: Update this function. It's OUT OF DATE!!!
 	  */
 	public void serviceUDP() {
+		LamportClock timestamp = null;
+		String command = "", response = "";
 		try (DatagramSocket socket = new DatagramSocket()) {
-			String command = new String(packet.getData());
+			command = new String(packet.getData());
 			System.out.println("UDP Service: " + command);
 			
+			// Parse ServerTag for reply.
+			String returnAddress = packet.getAddress().getHostAddress();
+			String tagString = String.format("<%s>:<%d>", returnAddress, packet.getPort());
+			ServerTag tag = ServerTag.parse(tagString);
+			
+			// DEBUG: rec ping.. ignore message.
+			if (command.equals("ping")) {
+				System.out.println("Receieved a ping...");
+			}
+			
+			// command for leader election.
+			else if (command.startsWith("leader")){
+				String[] tokens = command.split(" ", 3);
+				timestamp = LamportClock.parseClock(tokens[2]);
+				Integer leaderId = Integer.parseInt(tokens[1]);
+				messenger.leader(tag, timestamp, leaderId);
+			}
+			
+			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
+			/*// service intraserver request.
+			else if (command.startsWith("request")) {
+				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+				messenger.receiveRequest(timestamp);
+			}
+			
+			// service intraserver release.
+			else if (command.startsWith("release")) {
+				// execute the command before removing from queue.
+				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+				command = reader.readLine();
+				execute(command);
+				messenger.receiveRelease(timestamp);
+			}
+			
+			// service intraserver acknowledgement.
+			else if (command.startsWith("acknowledge")) {
+				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
+				messenger.receiveAcknowledgement(timestamp);
+			}*/
+			
+			
 			// execute server command
-			String response = execute(command);
+			response = execute(command);
 			byte[] data = response.getBytes();
 			int length = data.length;
 			
