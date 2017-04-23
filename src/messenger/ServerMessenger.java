@@ -39,6 +39,11 @@ public class ServerMessenger extends Messenger {
 	// server-server communication
 	private DatagramSocket socket; // outgoing port
 	
+	//leader election
+	private Integer leader;
+	private Boolean isFirstLeaderElection;
+	private Integer numLeaderProposals;
+	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
 	private LamportClock timestamp;
@@ -228,18 +233,92 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-	public synchronized void leader(ServerTag tag, LamportClock timestamp, Integer leaderId) {
-		// // execute server command
-		// response = execute(command);
-		// byte[] data = response.getBytes();
-		// int length = data.length;
-		//
-		// // send return packet with command response.
-		// DatagramPacket returnPacket = new DatagramPacket(data, length);
-		// returnPacket.setAddress(packet.getAddress());
-		// returnPacket.setPort(packet.getPort());
-		// socket.send(returnPacket);
-		// socket.close();
+
+	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId){
+	    //update my timestamp
+	    Integer myts = this.timestamp.getTimestamp();
+	    Integer otherts = timestamp.getTimestamp();
+	    this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+	    
+	    //get sender info
+	    Integer senderId = timestamp.getProcessId();
+	    ServerTag senderTag = getServerTag(senderId);
+	    
+	    //check if leader process already started
+	    if (isFirstLeaderElection) {
+	        numLeaderProposals = 1;
+	        leader = Math.max(serverId, leaderId);
+	        isFirstLeaderElection = false;
+	    } else {
+	        leader = Math.max(leader, leaderId);
+	    }
+	    
+	    //check if server received leader proposal from all others
+	    numLeaderProposals++;
+	    if (numLeaderProposals == numServers - 1) {
+	        isFirstLeaderElection = true; //for next leader election cycle
+	    }
+	    
+	    //send back to sending port of sender server
+	    
+	    
+	    
+	    //send to all other servers receiving ports
+	    List<Integer> downedServers = new ArrayList<Integer>();
+        for (Integer id : tags.keySet()) {
+            try { // create a socket channel
+                if (id != serverId && id != senderId) {
+                    ServerTag sender = tags.get(id);
+                    Socket socket = new Socket();
+                    socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort() + 100), 100);
+                    socket.setSoTimeout(100); // 100ms socket timeouts.
+                    
+                    // send request string with clock.
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+                    writer.format("request %s%n", timestamp.toString());
+                    writer.println("exit");
+                    
+                    // message acknowledgement
+                    this.timestamp.increment();
+                    if (reader.readLine() == null) { // 100ms timeout.
+                        socket.close();
+                        throw new SocketTimeoutException();
+                    }
+                    writer.close();
+                    reader.close();
+                    socket.close();
+                }
+            } catch (IOException err) {
+                System.err.println("could not establish socket for server " + id);
+                downedServers.add(id); // remove inactive server tag.
+                numServers = numServers - 1;
+            }
+        }
+        
+        for (Integer id : downedServers) {
+            tags.remove(id);
+        }
+        
+	}
+	
+	/**
+	 * Initiate leader election. 
+	 * notify all servers to start proposing leaders
+	 */
+	public synchronized void startLeaderElection(){
+	    //send default serverId
+	    leader = serverId;
+	    isFirstLeaderElection = true;
+	    numLeaderProposals = 0;
+	    
+	    for (Integer id: tags.keySet()) {
+	        if (id != serverId) {
+	            
+	        }
+	    }
+	    
+
 	}
 	
 	/** incrementClock()
