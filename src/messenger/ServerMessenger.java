@@ -52,6 +52,8 @@ public class ServerMessenger extends Messenger {
 	public ServerMessenger(Server server) {
 		this.server = server;
 		this.queue = new PriorityQueue<LamportClock>();
+		this.isFirstLeaderElection = true;
+		this.numLeaderProposals = 0;
 	}
 	
 	/**
