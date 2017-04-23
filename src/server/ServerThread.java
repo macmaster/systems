@@ -150,16 +150,6 @@ public class ServerThread extends Thread {
 				String[] tokens = command.split(" ", 3);
 				timestamp = LamportClock.parseClock(tokens[2]);
 				Integer leaderId = Integer.parseInt(tokens[1]);
-				
-				// acknowledge leader message.
-				InetAddress address = packet.getAddress();
-				Integer port = packet.getPort();
-				command = String.format("leader %d %s", Math.max(messenger.getServerId(), leaderId), timestamp);
-				byte[] data = command.getBytes();
-				packet = new DatagramPacket(data, data.length, address, port);
-				socket.send(packet);
-				messenger.incrementClock();
-				
 				// elect new leader
 				messenger.electLeader(tag, timestamp, leaderId);
 			}
