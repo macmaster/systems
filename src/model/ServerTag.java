@@ -66,6 +66,14 @@ public class ServerTag {
 	}
 	
 	/**
+	 * getUDPPort()
+	 * returns the server port for UDP. <br>
+	 */
+	public int getUDPPort() {
+		return port + 1000;
+	}
+	
+	/**
 	 * getAddressBytes()
 	 * returns the server address bytes. <br>
 	 */

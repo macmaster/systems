@@ -1,13 +1,24 @@
 package messenger;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.PriorityQueue;
 
 import model.LamportClock;
 import model.ServerTag;
 import server.Server;
 import server.ServerTCPListener;
+import server.ServerUDPListener;
 
 /** ServerMessenger
  * Contains communication methods for the server.
@@ -48,10 +59,17 @@ public class ServerMessenger extends Messenger {
 	 * start the server listener <br>
 	 */
 	public void start() {
-		// server port listener
-		this.timestamp = new LamportClock(serverId);
-		this.serverTag = tags.get(serverId); // set my server tag.
-		new ServerTCPListener(server, serverTag.getPort()).start();
+		try { // start server port listeners
+			this.timestamp = new LamportClock(serverId);
+			this.serverTag = tags.get(serverId); // set my server tag.
+			this.socket = new DatagramSocket(); // personal backchannel socket.
+			new ServerTCPListener(server, serverTag.getPort()).start();
+			new ServerUDPListener(server, ).start();
+		} catch (SocketException e) {
+			System.err.println("Could not start the server messenger. Exiting...");
+			e.printStackTrace();
+			System.exit(1);
+		}
 	}
 	
 	// parse server metadata.
@@ -210,8 +228,18 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-	public synchronized void leader(ServerTag tag, LamportClock timestamp, Integer leaderId){
-		
+	public synchronized void leader(ServerTag tag, LamportClock timestamp, Integer leaderId) {
+		// // execute server command
+		// response = execute(command);
+		// byte[] data = response.getBytes();
+		// int length = data.length;
+		//
+		// // send return packet with command response.
+		// DatagramPacket returnPacket = new DatagramPacket(data, length);
+		// returnPacket.setAddress(packet.getAddress());
+		// returnPacket.setPort(packet.getPort());
+		// socket.send(returnPacket);
+		// socket.close();
 	}
 	
 	/** incrementClock()
