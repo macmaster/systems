@@ -210,7 +210,7 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-	public synchronized void leader(LamportClock timestamp, String command){
+	public synchronized void leader(ServerTag tag, LamportClock timestamp, Integer leaderId){
 		
 	}
 	
