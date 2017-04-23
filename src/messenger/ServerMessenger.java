@@ -259,7 +259,7 @@ public class ServerMessenger extends Messenger {
 		
 		// send back to sending port of sender server
 		List<Integer> downedServers = new ArrayList<Integer>();
-		try {// acknowledge leader message.
+		try { // acknowledge leader message.
 			socket.setSoTimeout(100);
 			socket.connect(senderTag.getAddress(), senderTag.getPort());
 			String buf = String.format("leader %d %s", leader, timestamp);
@@ -268,12 +268,30 @@ public class ServerMessenger extends Messenger {
 			sendPacket.setPort(senderTag.getPort());
 			socket.send(sendPacket);
 			incrementClock();
-			
 		} catch (IOException e) {
 			System.err.println("could not establish socket for server " + senderId);
 			downedServers.add(senderId); // remove inactive server tag.
 			numServers = numServers - 1;
 			e.printStackTrace();
+		}
+		
+		// message the leader to the others.
+		for (Integer id : tags.keySet()) {
+			if (id != serverId && id != senderId) {
+				try { // catch faulty servers.
+					messageLeader(id);
+				} catch (IOException e) {
+					System.err.println("could not establish socket for server " + senderId);
+					downedServers.add(senderId); // remove inactive server tag.
+					numServers = numServers - 1;
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		// remove faulty servers.
+		for (Integer id : downedServers) {
+			tags.remove(id);
 		}
 		
 	}
@@ -291,35 +309,34 @@ public class ServerMessenger extends Messenger {
 		// send to all other servers receiving ports
 	}
 	
-	private void messageLeader(Integer senderId) {
-		// send to all other servers receiving ports
-		List<Integer> downedServers = new ArrayList<Integer>();
-		for (Integer id : tags.keySet()) {
-			try { // create a socket channel
-				if (id != serverId && id != senderId) {
-					// send a datagram
-					ServerTag serverTag = getServerTag(id);
-					socket.setSoTimeout(100);
-					socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
-					String buf = String.format("leader %d %s", leader, timestamp);
-					DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
-					sendPacket.setAddress(serverTag.getAddress());
-					sendPacket.setPort(serverTag.getPort());
-					System.out.format("Sending %s to %s : %d%n", buf, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
-					socket.send(sendPacket);
-					incrementClock();
-				}
-			} catch (IOException err) {
-				System.err.println("could not establish socket for server " + id);
-				downedServers.add(id); // remove inactive server tag.
-				numServers = numServers - 1;
-				err.printStackTrace();
-			}
-		}
+	private void messageLeader(Integer serverId) throws IOException {
+		// send out the leader.
+		ServerTag serverTag = getServerTag(serverId);
+		socket.setSoTimeout(100); // send a datagram
+		socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+		String command = String.format("leader %d %s", leader, timestamp);
+		DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
+		sendPacket.setAddress(serverTag.getAddress());
+		sendPacket.setPort(serverTag.getPort());
+		System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
+		socket.send(sendPacket);
+		incrementClock();
 		
-		for (Integer id : downedServers) {
-			tags.remove(id);
-		}
+		// receive the leader acknowledgement.
+		byte[] buffer = new byte[1024];
+		DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+		socket.receive(receivePacket);
+		command = new String(buffer);
+		String tokens[] = command.split(" ");
+		
+		// update my leader.
+		Integer leaderId = Integer.parseInt(tokens[1]);
+		leader = Math.max(leaderId, leader);
+		
+		// update my timestamp
+		Integer myts = this.timestamp.getTimestamp();
+		Integer otherts = LamportClock.parseClock(tokens[2]).getTimestamp();
+		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
 	}
 	
 	/** incrementClock()
