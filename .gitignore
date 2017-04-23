@@ -12,6 +12,7 @@
 hs_err_pid*
 /bin/
 src/hw*
+output/*
 
 # intellij ignores
 .eml
