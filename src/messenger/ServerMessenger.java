@@ -68,7 +68,7 @@ public class ServerMessenger extends Messenger {
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
 			new ServerUDPListener(server, serverTag.getUDPPort()).start();
-			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)", serverTag.getPort(), serverTag.getUDPPort());
+			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)%n", serverTag.getPort(), serverTag.getUDPPort());
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
