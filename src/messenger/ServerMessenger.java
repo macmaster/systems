@@ -28,6 +28,10 @@ public class ServerMessenger extends Messenger {
 	// server-server communication
 	private DatagramSocket socket; // outgoing port
 	
+	//leader election
+	private Integer leader;
+	private Boolean leaderNotElected;
+	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
 	private LamportClock timestamp;
@@ -210,8 +214,34 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-	public synchronized void leader(LamportClock timestamp, String command){
-		
+	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId){
+	    //update my timestamp
+	      Integer myts = this.timestamp.getTimestamp();
+	      Integer otherts = timestamp.getTimestamp();
+	      this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+	    
+	    //check if leader process already started
+	    if (!leaderNotElected) {
+	        leader = Math.max(serverId, leaderId);
+	        firstLeaderElected = true;
+	    } else {
+	        leader = Math.max(leader, leaderId);
+	        elected
+	    }
+	    
+	    
+	    
+	    
+	}
+	
+	/**
+	 * Initiate leader election. 
+	 * notify all servers to start proposing leaders
+	 */
+	public synchronized void startLeaderElection(){
+	    //send default serverId
+	    leader = serverId;
+	    
 	}
 	
 	/** incrementClock()
