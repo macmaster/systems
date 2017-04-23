@@ -28,7 +28,7 @@ public class ServerUDPListener extends Thread {
 	public void run() {
 		try (DatagramSocket socket = new DatagramSocket(port);) {
 			final int length = 1024;
-			while (true) { // listen for tcp clients
+			while (true) { // listen for udp clients
 				byte[] data = new byte[length];
 				DatagramPacket packet = new DatagramPacket(data, length);
 				socket.receive(packet);

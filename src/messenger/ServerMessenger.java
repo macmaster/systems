@@ -25,6 +25,9 @@ public class ServerMessenger extends Messenger {
 	private Integer serverId;
 	private ServerTag serverTag;
 	
+	// server-server communication
+	private DatagramSocket socket; // outgoing port
+	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
 	private LamportClock timestamp;
@@ -200,6 +203,15 @@ public class ServerMessenger extends Messenger {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Leader election function.
+	 * upon awakening, propose leader to other servers.
+	 * synchronously wait for replies of all other servers.
+	 */
+	public synchronized void leader(LamportClock timestamp, String command){
+		
 	}
 	
 	/** incrementClock()
