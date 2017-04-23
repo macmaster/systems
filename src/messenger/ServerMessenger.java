@@ -35,7 +35,7 @@ public class ServerMessenger extends Messenger {
 	// server-server communication
 	private DatagramSocket socket; // outgoing port
 	
-	//leader election
+	// leader election
 	private Integer leader;
 	private Boolean isFirstLeaderElection;
 	private Integer numLeaderProposals;
@@ -68,6 +68,7 @@ public class ServerMessenger extends Messenger {
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
 			new ServerUDPListener(server, serverTag.getUDPPort()).start();
+			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)", serverTag.getPort(), serverTag.getUDPPort());
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
@@ -231,115 +232,111 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-
-	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId){
-	    //update my timestamp
-	    Integer myts = this.timestamp.getTimestamp();
-	    Integer otherts = timestamp.getTimestamp();
-	    this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-	    
-	    //get sender info
-	    Integer senderId = timestamp.getProcessId();
-	    ServerTag senderTag = getServerTag(senderId);
-	    
-	    //check if leader process already started
-	    if (isFirstLeaderElection) {
-	        numLeaderProposals = 1;
-	        leader = Math.max(serverId, leaderId);
-	        isFirstLeaderElection = false;
-	    } else {
-	        leader = Math.max(leader, leaderId);
-	    }
-	    
-	    //check if server received leader proposal from all others
-	    numLeaderProposals++;
-	    if (numLeaderProposals == numServers - 1) {
-	        isFirstLeaderElection = true; //for next leader election cycle
-	    }
-	    
-	    //send back to sending port of sender server
-	    List<Integer> downedServers = new ArrayList<Integer>();
-	    try {
-	        socket.connect(senderTag.getAddress(), senderTag.getUDPPort());
-	        socket.setSoTimeout(100);
-	        String buf = "leader " + leader + " " + timestamp.toString();
-	        DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
-	                                                       serverTag.getAddress(), serverTag.getUDPPort());
-	        incrementClock();
-	        socket.send(sendPacket);
-	        socket.close();
-	    } catch (IOException e) {
-            System.err.println("could not establish socket for server " + senderId);
-            downedServers.add(senderId); // remove inactive server tag.
-            numServers = numServers - 1;
-	    }
-	    
-	    
-	    //send to all other servers receiving ports
-        for (Integer id : tags.keySet()) {
-            try { // create a socket channel
-                if (id != serverId && id != senderId) {
-                    ServerTag serverTag = tags.get(id);
-                    socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
-                    socket.setSoTimeout(100);
-                    String buf = "leader " + leader + " " + timestamp.toString();
-                    DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
-                                                                   serverTag.getAddress(), serverTag.getUDPPort());
-                    incrementClock();
-                    socket.send(sendPacket);
-                    socket.close();
-                }
-            } catch (IOException err) {
-                System.err.println("could not establish socket for server " + id);
-                downedServers.add(id); // remove inactive server tag.
-                numServers = numServers - 1;
-            }
-        }
-        
-        for (Integer id : downedServers) {
-            tags.remove(id);
-        }
-        
+	
+	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId) {
+		// update my timestamp
+		Integer myts = this.timestamp.getTimestamp();
+		Integer otherts = timestamp.getTimestamp();
+		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+		
+		// get sender info
+		Integer senderId = timestamp.getProcessId();
+		ServerTag senderTag = getServerTag(senderId);
+		
+		// check if leader process already started
+		if (isFirstLeaderElection) {
+			numLeaderProposals = 1;
+			leader = Math.max(serverId, leaderId);
+			isFirstLeaderElection = false;
+		} else {
+			leader = Math.max(leader, leaderId);
+		}
+		
+		// check if server received leader proposal from all others
+		numLeaderProposals++;
+		if (numLeaderProposals == numServers - 1) {
+			isFirstLeaderElection = true; // for next leader election cycle
+		}
+		
+		// send back to sending port of sender server
+		List<Integer> downedServers = new ArrayList<Integer>();
+		try {
+			socket.connect(senderTag.getAddress(), senderTag.getUDPPort());
+			socket.setSoTimeout(100);
+			String buf = "leader " + leader + " " + timestamp.toString();
+			DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(), serverTag.getAddress(), serverTag.getUDPPort());
+			incrementClock();
+			socket.send(sendPacket);
+			socket.close();
+		} catch (IOException e) {
+			System.err.println("could not establish socket for server " + senderId);
+			downedServers.add(senderId); // remove inactive server tag.
+			numServers = numServers - 1;
+		}
+		
+		// send to all other servers receiving ports
+		for (Integer id : tags.keySet()) {
+			try { // create a socket channel
+				if (id != serverId && id != senderId) {
+					ServerTag serverTag = tags.get(id);
+					socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+					socket.setSoTimeout(100);
+					String buf = "leader " + leader + " " + timestamp.toString();
+					DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(), serverTag.getAddress(),
+							serverTag.getUDPPort());
+					incrementClock();
+					socket.send(sendPacket);
+					socket.close();
+				}
+			} catch (IOException err) {
+				System.err.println("could not establish socket for server " + id);
+				downedServers.add(id); // remove inactive server tag.
+				numServers = numServers - 1;
+			}
+		}
+		
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
+		
 	}
 	
 	/**
 	 * Initiate leader election. 
 	 * notify all servers to start proposing leaders
 	 */
-	public synchronized void startLeaderElection(){
-	    //send default serverId
-	    leader = serverId;
-	    isFirstLeaderElection = true;
-	    numLeaderProposals = 0;
-	    
-        //send to all other servers receiving ports
-        List<Integer> downedServers = new ArrayList<Integer>();
-        for (Integer id : tags.keySet()) {
-            try { // create a socket channel
-                if (id != serverId) {
-                    ServerTag serverTag = tags.get(id);
-                    socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
-                    socket.setSoTimeout(100);
-                    String buf = "leader " + leader + " " + timestamp.toString();
-                    DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
-                                                                   serverTag.getAddress(), serverTag.getUDPPort());
-                    incrementClock();
-                    socket.send(sendPacket);
-                    socket.close();
-                }
-            } catch (Exception err) {
-                System.err.println("could not establish socket for server " + id);
-                downedServers.add(id); // remove inactive server tag.
-                numServers = numServers - 1;
-            }
-        }
-        
-        for (Integer id : downedServers) {
-            tags.remove(id);
-        }
-        
-	    
-
+	public synchronized void startLeaderElection() {
+		// send default serverId
+		leader = serverId;
+		isFirstLeaderElection = true;
+		numLeaderProposals = 0;
+		
+		// send to all other servers receiving ports
+		List<Integer> downedServers = new ArrayList<Integer>();
+		for (Integer id : tags.keySet()) {
+			try { // create a socket channel
+				if (id != serverId) {
+					ServerTag serverTag = tags.get(id);
+					socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+					socket.setSoTimeout(100);
+					String buf = "leader " + leader + " " + timestamp.toString();
+					DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(), serverTag.getAddress(),
+							serverTag.getUDPPort());
+					incrementClock();
+					socket.send(sendPacket);
+					socket.close();
+				}
+			} catch (Exception err) {
+				System.err.println("could not establish socket for server " + id);
+				downedServers.add(id); // remove inactive server tag.
+				numServers = numServers - 1;
+			}
+		}
+		
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
+		
 	}
 	
 	/** incrementClock()
