@@ -68,7 +68,7 @@ public class ServerMessenger extends Messenger {
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
 			new ServerUDPListener(server, serverTag.getUDPPort()).start();
-			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)%n", serverTag.getPort(), serverTag.getUDPPort());
+			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)%n", serverId, serverTag.getPort(), serverTag.getUDPPort());
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
@@ -322,11 +322,17 @@ public class ServerMessenger extends Messenger {
                     ServerTag serverTag = tags.get(id);
                     socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
                     socket.setSoTimeout(100);
+                    byte[] receiveBuf = new byte[1024];
                     String buf = "leader " + leader + " " + timestamp.toString();
                     DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
                                                                    serverTag.getAddress(), serverTag.getUDPPort());
+                    DatagramPacket receivePacket = new DatagramPacket(receiveBuf, receiveBuf.length);
                     incrementClock();
                     socket.send(sendPacket);
+                    socket.receive(receivePacket);
+                    
+                    
+                    
                 }
             } catch (Exception err) {
                 System.err.println("could not establish socket for server " + id);
@@ -335,6 +341,7 @@ public class ServerMessenger extends Messenger {
                 err.printStackTrace();
             }
         }
+        
         
         for (Integer id : downedServers) {
             tags.remove(id);
@@ -348,6 +355,10 @@ public class ServerMessenger extends Messenger {
 	 */
 	public synchronized void incrementClock() {
 		this.timestamp.increment();
+	}
+	
+	public Integer getServerId() {
+	    return serverId;
 	}
 	
 }
