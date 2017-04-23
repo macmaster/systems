@@ -38,9 +38,13 @@ public class ServerDriver {
 				String input = reader.readLine();
 				String[] tokens = input.split(" ");
 				
+				// execute command
 				if (input.startsWith("leader")) {
 					System.out.println("[leader command]");
 					messenger.startLeaderElection();
+				} else if (input.startsWith("exit")) {
+					System.out.println("[exit command]");
+					System.exit(0);
 				} else {
 					System.out.println("unknown command...");
 				}

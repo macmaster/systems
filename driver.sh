@@ -1,6 +1,16 @@
 #!/bin/bash
-cd bin/
-(java server.Server <../input/s1.txt >../output/s1.txt &) 
-(java server.Server <../input/s2.txt >../output/s2.txt &)
-#java server.Server <../input/s3.txt >../output/s3.txt &
+echo "!/bin/bash" > kill.sh
+n=2
+for i in `seq 1 $n`; do
+	(java -cp bin/ server.Server <input/s${i}.txt >output/s${i}.txt &)
+	echo "kill $!" >> kill.sh;
+done
+
+echo "printing kill.sh: "
+cat kill.sh
+
+echo "running server driver: "
 java server.ServerDriver
+
+./kill.sh
+rm kill.sh
