@@ -281,8 +281,8 @@ public class ServerMessenger extends Messenger {
 				try { // catch faulty servers.
 					messageLeader(id);
 				} catch (IOException e) {
-					System.err.println("could not establish socket for server " + senderId);
-					downedServers.add(senderId); // remove inactive server tag.
+					System.err.println("could not establish socket for server " + id);
+					downedServers.add(id); // remove inactive server tag.
 					numServers = numServers - 1;
 					e.printStackTrace();
 				}
@@ -307,6 +307,24 @@ public class ServerMessenger extends Messenger {
 		numLeaderProposals = 0;
 		
 		// send to all other servers receiving ports
+		List<Integer> downedServers = new ArrayList<Integer>();
+		for (Integer id: tags.keySet()) {
+			if (id != serverId) { 
+				try { // catch faulty servers.
+					messageLeader(id);
+				} catch (IOException e) {
+					System.err.println("could not establish socket for server " + id);
+					downedServers.add(id); // remove inactive server tag.
+					numServers = numServers - 1;
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		// remove faulty servers.
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
 	}
 	
 	private void messageLeader(Integer serverId) throws IOException {
@@ -351,5 +369,4 @@ public class ServerMessenger extends Messenger {
 	public Integer getServerId() {
 		return serverId;
 	}
-	
 }
