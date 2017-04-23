@@ -32,21 +32,20 @@ public class ServerDriver {
 		byte[] data = null;
 		ServerMessenger messenger = server.getMessenger();
 		System.out.println("sclient $ ");
-		while (true) {
-			try (InputStreamReader stream = new InputStreamReader(System.in);
-				BufferedReader reader = new BufferedReader(stream);) {
+		try (InputStreamReader stream = new InputStreamReader(System.in);
+			BufferedReader reader = new BufferedReader(stream);) {
+			while (true) {
 				String input = reader.readLine();
 				String[] tokens = input.split(" ");
 				
 				if (input.startsWith("leader")) {
 					System.out.println("[leader command]");
+					messenger.startLeaderElection();
 				} else {
 					System.out.println("unknown command...");
 				}
-				
-			} catch (Exception err) {
-				
 			}
+		} catch (Exception err) {
 			
 		}
 	}
