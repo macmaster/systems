@@ -35,7 +35,7 @@ public class ServerMessenger extends Messenger {
 	// server-server communication
 	private DatagramSocket socket; // outgoing port
 	
-	//leader election
+	// leader election
 	private Integer leader;
 	private Boolean isFirstLeaderElection;
 	private Integer numLeaderProposals;
@@ -68,6 +68,7 @@ public class ServerMessenger extends Messenger {
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
 			new ServerUDPListener(server, serverTag.getUDPPort()).start();
+			System.out.format("Server %d: now listening on (tcp, udp) ports (%d, %d)%n", serverTag.getPort(), serverTag.getUDPPort());
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
@@ -301,8 +302,7 @@ public class ServerMessenger extends Messenger {
         for (Integer id : downedServers) {
             tags.remove(id);
         }
-        
-	}
+	}        
 	
 	/**
 	 * Initiate leader election. 
@@ -339,9 +339,6 @@ public class ServerMessenger extends Messenger {
         for (Integer id : downedServers) {
             tags.remove(id);
         }
-        
-	    
-
 	}
 	
 	/** incrementClock()
