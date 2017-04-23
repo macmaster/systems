@@ -6,7 +6,6 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -81,7 +80,6 @@ public class ServerThread extends Thread {
 			BufferedReader reader = new BufferedReader(istream);) {
 			
 			// continually service tcp connection.
-			LamportClock timestamp = null;
 			String command = "", response = "";
 			while ((command = reader.readLine()) != null) {
 				pinger = new KeepAliveThread(ostream); // keep alive thread
@@ -93,7 +91,7 @@ public class ServerThread extends Thread {
 					socket.close();
 					break; // finished socket execution.
 				}
-
+				
 				// commands that require acknowledgement.
 				else if (command.startsWith("purchase") || command.startsWith("cancel")) {
 					pinger.start();
@@ -147,7 +145,7 @@ public class ServerThread extends Thread {
 			}
 			
 			// command for leader election.
-			else if (command.startsWith("leader")){
+			else if (command.startsWith("leader")) {
 				String[] tokens = command.split(" ", 3);
 				timestamp = LamportClock.parseClock(tokens[2]);
 				Integer leaderId = Integer.parseInt(tokens[1]);
@@ -155,7 +153,7 @@ public class ServerThread extends Thread {
 			}
 			
 			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
-			/*// service intraserver request.
+			/** // service intraserver request.
 			else if (command.startsWith("request")) {
 				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
 				messenger.receiveRequest(timestamp);
@@ -176,18 +174,6 @@ public class ServerThread extends Thread {
 				messenger.receiveAcknowledgement(timestamp);
 			}*/
 			
-			
-			// execute server command
-			response = execute(command);
-			byte[] data = response.getBytes();
-			int length = data.length;
-			
-			// send return packet with command response.
-			DatagramPacket returnPacket = new DatagramPacket(data, length);
-			returnPacket.setAddress(packet.getAddress());
-			returnPacket.setPort(packet.getPort());
-			socket.send(returnPacket);
-			socket.close();
 		} catch (IOException err) {
 			System.err.println("Error servicing UDP request. exiting...");
 			err.printStackTrace();
