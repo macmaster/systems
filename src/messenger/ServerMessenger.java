@@ -5,11 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
@@ -69,7 +65,7 @@ public class ServerMessenger extends Messenger {
 			this.serverTag = tags.get(serverId); // set my server tag.
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
-			new ServerUDPListener(server, ).start();
+			new ServerUDPListener(server, serverTag.getUDPPort()).start();
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
@@ -260,33 +256,35 @@ public class ServerMessenger extends Messenger {
 	    }
 	    
 	    //send back to sending port of sender server
-	    
+	    List<Integer> downedServers = new ArrayList<Integer>();
+	    try {
+	        socket.connect(senderTag.getAddress(), senderTag.getUDPPort());
+	        socket.setSoTimeout(100);
+	        String buf = "leader " + leader + " " + timestamp.toString();
+	        DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
+	                                                       serverTag.getAddress(), serverTag.getUDPPort());
+	        incrementClock();
+	        socket.send(sendPacket);
+	        socket.close();
+	    } catch (IOException e) {
+            System.err.println("could not establish socket for server " + senderId);
+            downedServers.add(senderId); // remove inactive server tag.
+            numServers = numServers - 1;
+	    }
 	    
 	    
 	    //send to all other servers receiving ports
-	    List<Integer> downedServers = new ArrayList<Integer>();
         for (Integer id : tags.keySet()) {
             try { // create a socket channel
                 if (id != serverId && id != senderId) {
-                    ServerTag sender = tags.get(id);
-                    Socket socket = new Socket();
-                    socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort() + 100), 100);
-                    socket.setSoTimeout(100); // 100ms socket timeouts.
-                    
-                    // send request string with clock.
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
-                    writer.format("request %s%n", timestamp.toString());
-                    writer.println("exit");
-                    
-                    // message acknowledgement
-                    this.timestamp.increment();
-                    if (reader.readLine() == null) { // 100ms timeout.
-                        socket.close();
-                        throw new SocketTimeoutException();
-                    }
-                    writer.close();
-                    reader.close();
+                    ServerTag serverTag = tags.get(id);
+                    socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+                    socket.setSoTimeout(100);
+                    String buf = "leader " + leader + " " + timestamp.toString();
+                    DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
+                                                                   serverTag.getAddress(), serverTag.getUDPPort());
+                    incrementClock();
+                    socket.send(sendPacket);
                     socket.close();
                 }
             } catch (IOException err) {
@@ -312,11 +310,32 @@ public class ServerMessenger extends Messenger {
 	    isFirstLeaderElection = true;
 	    numLeaderProposals = 0;
 	    
-	    for (Integer id: tags.keySet()) {
-	        if (id != serverId) {
-	            
-	        }
-	    }
+        //send to all other servers receiving ports
+        List<Integer> downedServers = new ArrayList<Integer>();
+        for (Integer id : tags.keySet()) {
+            try { // create a socket channel
+                if (id != serverId) {
+                    ServerTag serverTag = tags.get(id);
+                    socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+                    socket.setSoTimeout(100);
+                    String buf = "leader " + leader + " " + timestamp.toString();
+                    DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
+                                                                   serverTag.getAddress(), serverTag.getUDPPort());
+                    incrementClock();
+                    socket.send(sendPacket);
+                    socket.close();
+                }
+            } catch (Exception err) {
+                System.err.println("could not establish socket for server " + id);
+                downedServers.add(id); // remove inactive server tag.
+                numServers = numServers - 1;
+            }
+        }
+        
+        for (Integer id : downedServers) {
+            tags.remove(id);
+        }
+        
 	    
 
 	}
