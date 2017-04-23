@@ -232,7 +232,6 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-
 	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId){
 	    //update my timestamp
 	    Integer myts = this.timestamp.getTimestamp();
@@ -326,10 +325,7 @@ public class ServerMessenger extends Messenger {
                     String buf = "leader " + leader + " " + timestamp.toString();
                     DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length(),
                                                                    serverTag.getAddress(), serverTag.getUDPPort());
-                    DatagramPacket receivePacket = new DatagramPacket(receiveBuf, receiveBuf.length);
-                    incrementClock();
-                    socket.send(sendPacket);
-                    socket.receive(receivePacket);
+ 
                     
                     
                     
