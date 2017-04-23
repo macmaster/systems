@@ -64,7 +64,7 @@ public class ServerMessenger extends Messenger {
 			this.serverTag = tags.get(serverId); // set my server tag.
 			this.socket = new DatagramSocket(); // personal backchannel socket.
 			new ServerTCPListener(server, serverTag.getPort()).start();
-			new ServerUDPListener(server, ).start();
+			new ServerUDPListener(server, serverTag.getUDPPort()).start();
 		} catch (SocketException e) {
 			System.err.println("Could not start the server messenger. Exiting...");
 			e.printStackTrace();
