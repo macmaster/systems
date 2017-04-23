@@ -261,7 +261,6 @@ public class ServerMessenger extends Messenger {
 		List<Integer> downedServers = new ArrayList<Integer>();
 		try { // acknowledge leader message.
 			socket.setSoTimeout(100);
-			socket.connect(senderTag.getAddress(), senderTag.getPort());
 			String buf = String.format("leader %d %s", leader, timestamp);
 			DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
 			sendPacket.setAddress(senderTag.getAddress());
@@ -308,8 +307,8 @@ public class ServerMessenger extends Messenger {
 		
 		// send to all other servers receiving ports
 		List<Integer> downedServers = new ArrayList<Integer>();
-		for (Integer id: tags.keySet()) {
-			if (id != serverId) { 
+		for (Integer id : tags.keySet()) {
+			if (id != serverId) {
 				try { // catch faulty servers.
 					messageLeader(id);
 				} catch (IOException e) {
@@ -331,11 +330,10 @@ public class ServerMessenger extends Messenger {
 		// send out the leader.
 		ServerTag serverTag = getServerTag(serverId);
 		socket.setSoTimeout(100); // send a datagram
-		socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
 		String command = String.format("leader %d %s", leader, timestamp);
 		DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
 		sendPacket.setAddress(serverTag.getAddress());
-		sendPacket.setPort(serverTag.getPort());
+		sendPacket.setPort(serverTag.getUDPPort());
 		System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
 		socket.send(sendPacket);
 		incrementClock();

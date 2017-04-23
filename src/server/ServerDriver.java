@@ -50,7 +50,7 @@ public class ServerDriver {
 				}
 			}
 		} catch (Exception err) {
-			
+			err.printStackTrace();
 		}
 	}
 	

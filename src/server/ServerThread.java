@@ -150,7 +150,6 @@ public class ServerThread extends Thread {
 				String[] tokens = command.split(" ", 3);
 				timestamp = LamportClock.parseClock(tokens[2]);
 				Integer leaderId = Integer.parseInt(tokens[1]);
-				// elect new leader
 				messenger.electLeader(tag, timestamp, leaderId);
 			}
 			
