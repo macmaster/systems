@@ -248,9 +248,8 @@ public class ServerMessenger extends Messenger {
 	 * Send the proposal number (lamport timestamp) to all the acceptors.
 	 * Acceptor quorum must consist of a majority.
 	 */
-	public synchronized void proposePrepare(LamportClock clock) {
+	public synchronized void proposePrepare(LamportClock number) {
 		// send to all other servers receiving ports
-		LamportClock number = clock.copy();
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
 			try { // catch faulty servers.
@@ -279,11 +278,11 @@ public class ServerMessenger extends Messenger {
 	 *
 	 * @throws IOException
 	 */
-	public synchronized void receiveProposerPrepare(Integer senderId, LamportClock clock) {
+	public synchronized void receiveProposerPrepare(Integer senderId, LamportClock number) {
 		try { // catch faulty servers.
-			if (clock.compareTo(promisedNumber) > 0) { // accept the prepare proposal.
-				promisedNumber.setClock(clock);
-				System.out.println("promised number: " + clock);
+			if (number.compareTo(promisedNumber) > 0) { // accept the prepare proposal.
+				promisedNumber.setClock(number);
+				System.out.println("promised number: " + number);
 				sendMessage(senderId, new AcceptorMessage(acceptedNumber, acceptedCommand).toString());
 			} else { // reject the proposal
 				sendMessage(senderId, new AcceptorMessage().toString());
@@ -327,7 +326,25 @@ public class ServerMessenger extends Messenger {
 	 * Send the proposal number (lamport timestamp) to all the acceptors.
 	 * Acceptor quorum must consist of a majority.
 	 */
-	public synchronized void proposeAccept(LamportClock clock) {
+	public synchronized void proposeAccept(LamportClock number, String command) {
+		List<Integer> downedServers = new ArrayList<Integer>();
+		for (Integer id : tags.keySet()) {
+			try { // catch faulty servers.
+				sendMessage(id, new ProposalMessage(number, command).toString());
+				String ping = receiveMessage();
+				// System.out.format("%s from %d.%n", ping, id);
+			} catch (IOException e) {
+				System.err.println("could not establish socket for server " + id);
+				downedServers.add(id); // remove inactive server tag.
+				numServers = numServers - 1;
+				notifyAll();
+			}
+		}
+		
+		// remove faulty servers.
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
 	}
 	
 	/** 

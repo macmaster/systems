@@ -126,7 +126,7 @@ public class ServerThread extends Thread {
 	
 	/** serviceUDP()
 	  * 
-	  * Connectionless UDP packets. <br>
+	  * Connection-less UDP packets. <br>
 	  * Sends a response packet.
 	  */
 	public void serviceUDP() {
@@ -184,29 +184,13 @@ public class ServerThread extends Thread {
 					Matcher matcher = acceptPattern.matcher(message);
 					matcher.find();
 					command = matcher.group(1);
+					command = command.equals("null") ? null : command;
 					number = LamportClock.parseClock(matcher.group(2));
 					messenger.receiveAcceptorAccept(number, command);
 				} else if (message.startsWith("acceptor reject")) {
 					messenger.receiveAcceptorReject();
 				}
 			}
-			
-			// command for leader election.
-			// else if (command.startsWith("leader")) {
-			// String[] tokens = command.split(" ", 3);
-			// timestamp = LamportClock.parseClock(tokens[2]);
-			// Integer leaderId = Integer.parseInt(tokens[1]);
-			//
-			// // acknowledge leader message.
-			// String buf = String.format("leader %d %s", Math.max(messenger.getServerId(), timestamp.getProcessId()), timestamp);
-			// DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
-			// sendPacket.setAddress(tag.getAddress());
-			// sendPacket.setPort(tag.getPort());
-			// socket.send(sendPacket);
-			// messenger.incrementClock();
-			//
-			// messenger.electLeader(timestamp, leaderId);
-			// }
 			
 			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
 			/** // service intraserver request.

@@ -19,8 +19,6 @@ import model.LamportClock;
 public class ServerDriver {
 	
 	public static void main(String[] args) throws SocketException {
-		System.out.println("running server client...");
-		DatagramSocket socket = new DatagramSocket();
 		
 		// parse the inventory file and start the server.
 		System.out.println("Starting the inventory server...");
@@ -28,16 +26,12 @@ public class ServerDriver {
 		server.init();
 		server.start();
 		
-		byte[] data = null;
 		ServerMessenger messenger = server.getMessenger();
-		System.out.println("sclient $ ");
 		try (InputStreamReader stream = new InputStreamReader(System.in);
 			BufferedReader reader = new BufferedReader(stream);) {
-			while (true) {
+			while (true) { // execute command
+				System.out.print("sclient $ ");
 				String input = reader.readLine();
-				String[] tokens = input.split(" ");
-				
-				// execute command
 				if (input.startsWith("prepare")) {
 					System.out.println("[prepare command]");
 					messenger.proposePrepare(new LamportClock(777, 777));
