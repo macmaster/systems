@@ -218,11 +218,18 @@ public class ServerMessenger extends Messenger {
 		LamportClock number = this.timestamp.copy(); // proposal number
 		boolean original = false; // executed the originally proposed command.
 		
+		// clear quorum for next phase.
+		numRejects = numAccepts = 0;
+		this.proposedNumber = null;
+		this.proposedCommand = null;
+		
 		// phase 1: propose a preperation.
 		proposePrepare(number);
 		while ((numAccepts + numRejects) < numServers) {
 			wait();
 		}
+		
+		// select proposal value.
 		if (numAccepts >= ((numServers / 2) + 1)) {
 			if (proposedNumber == null || proposedCommand == null) {
 				this.proposedNumber = number;
@@ -234,9 +241,25 @@ public class ServerMessenger extends Messenger {
 			return false;
 		}
 		
-		// phase 2: propose an accept.
+		// clear quorum for next phase.
+		numRejects = numAccepts = 0;
 		
+		// phase 2: propose an accept.
+		proposeAccept(proposedNumber, proposedCommand);
+		while ((numAccepts + numRejects) < numServers) {
+			wait();
+		}
+		
+		// the accept proposal was rejected.
+		if (numAccepts < ((numServers / 2) + 1)) {
+			System.out.println("Proposal accept was rejected!");
+			return false;
+		}
+		
+		// value accepted. notify the learners
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
+		
+		// clear quorum for next phase.
 		numRejects = numAccepts = 0;
 		this.proposedNumber = null;
 		this.proposedCommand = null;
@@ -281,12 +304,15 @@ public class ServerMessenger extends Messenger {
 	public synchronized void receiveProposerPrepare(Integer senderId, LamportClock number) {
 		try { // catch faulty servers.
 			if (number.compareTo(promisedNumber) > 0) { // accept the prepare proposal.
-				promisedNumber.setClock(number);
+				promisedNumber = number.copy();
 				System.out.println("promised number: " + number);
-				sendMessage(senderId, new AcceptorMessage(acceptedNumber, acceptedCommand).toString());
+				sendMessage(senderId, new AcceptorMessage(acceptedNumber, acceptedCommand, "accept").toString());
+				String ping = receiveMessage();
 			} else { // reject the proposal
 				sendMessage(senderId, new AcceptorMessage().toString());
+				String ping = receiveMessage();
 			}
+			
 		} catch (IOException e) {
 			System.err.println("could not establish socket for server " + senderId);
 			tags.remove(senderId); // remove inactive server tag.
@@ -310,7 +336,7 @@ public class ServerMessenger extends Messenger {
 	public synchronized void receiveAcceptorAccept(LamportClock number, String command) {
 		// System.out.format("recved acceptor prepare: %s [%s]%n", number, command);
 		if (number != null && command != null) {
-			if (number.compareTo(proposedNumber) > 1) {
+			if (number.compareTo(proposedNumber) > 0) {
 				proposedNumber = number.copy();
 				proposedCommand = command;
 			}
@@ -351,32 +377,24 @@ public class ServerMessenger extends Messenger {
 	 * Phase 2, Acceptor receives a proposal for an accept. <br>
 	 * [logic]
 	 */
-	public synchronized void receiveProposerAccept(LamportClock sequenceNumber, String request) {
-		try {
-			ServerTag serverTag = getServerTag(serverId);
-			socket.setSoTimeout(100); // send a datagram
-			socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
-			String command;
-			
-			if (sequenceNumber.compareTo(promisedNumber) >= 0) {
-				promisedNumber = sequenceNumber;
-				acceptedNumber = sequenceNumber;
-				acceptedCommand = request;
-				command = String.format("acceptor accept %s", sequenceNumber);
-			} else {
-				command = "acceptor accept reject";
+	public synchronized void receiveProposerAccept(Integer senderId, LamportClock number, String command) {
+		try {// catch faulty servers.
+			if (number.compareTo(promisedNumber) >= 0) {
+				promisedNumber = number.copy();
+				acceptedNumber = number.copy();
+				acceptedCommand = command;
+				AcceptorMessage message = new AcceptorMessage(acceptedNumber, acceptedCommand, "choose");
+				sendMessage(senderId, message.toString());
+				String ping = receiveMessage();
+			} else { // reject the proposal
+				sendMessage(senderId, new AcceptorMessage().toString());
+				String ping = receiveMessage();
 			}
-			
-			DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
-			sendPacket.setAddress(serverTag.getAddress());
-			sendPacket.setPort(serverTag.getPort());
-			System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
-			socket.send(sendPacket);
-			incrementClock();
-			
 		} catch (IOException e) {
-			System.err.println("Acceptor could not establish socket with leader ");
-			e.printStackTrace();
+			System.err.println("could not establish socket for server " + senderId);
+			tags.remove(senderId); // remove inactive server tag.
+			numServers = numServers - 1;
+			notifyAll();
 		}
 	}
 	

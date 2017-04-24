@@ -7,7 +7,6 @@ package server;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.net.DatagramSocket;
 import java.net.SocketException;
 
 import messenger.ServerMessenger;

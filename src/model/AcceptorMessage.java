@@ -18,7 +18,7 @@ public class AcceptorMessage {
 	// server transaction
 	private String command;
 	
-	// accept or reject
+	// accept, choose, or reject
 	private String type;
 	
 	/** AcceptorMessage() <br>
@@ -28,10 +28,10 @@ public class AcceptorMessage {
 	 * @param clock lamport timestamp functions as proposal number.
 	 * @param command server transaction functions as proposal value.
 	 */
-	public AcceptorMessage(LamportClock clock, String command) {
+	public AcceptorMessage(LamportClock clock, String command, String type) {
 		this.number = clock;
 		this.command = command;
-		this.type = "accept";
+		this.type = type;
 	}
 	
 	/** AcceptorMessage() <br>
@@ -61,8 +61,8 @@ public class AcceptorMessage {
 	public String toString() {
 		if(type.equals("reject")){
 			return String.format("acceptor reject");
-		} else if(type.equals("accept")){
-			return String.format("acceptor accept [%s] %s", command, number);			
+		} else if(type.equals("accept") || type.equals("choose")){
+			return String.format("acceptor %s [%s] %s", type, command, number);			
 		} else { // bad proposal message.
 			return null;
 		}
