@@ -190,21 +190,6 @@ public class ServerThread extends Thread {
 					messenger.receiveAcceptorReject();
 				}
 			}
-
-
-			/** Hari's proposer */
-			// command from proposer/leader to this acceptor to prepare
-//			else if (message.startsWith("proposer")) {
-//				String[] tokens = message.split(" ", 3);
-//				if(tokens[1].equals("prepare")) {
-//					// Parse the value based on the substring after the sequenceNumber
-//					LamportClock seqNumber = new LamportClock(Integer.parseInt(tokens[2]), messenger.getServerId());
-//					acceptorPrepare(seqNumber);
-//				}else{
-//					//(tokens[1].equals("accept"))
-//					String value = message.substring("proposer prepare".length() + 2 + tokens[2].length());
-//				}
-//			}
 			
 			// command for leader election.
 			// else if (command.startsWith("leader")) {

@@ -303,38 +303,23 @@ public class ServerMessenger extends Messenger {
 	public synchronized void proposeAccept(LamportClock clock) {
 	}
 	
+	public void receiveProposerAccept(LamportClock sequenceNumber, String request) {
+		if(sequenceNumber.compareTo(promisedNumber) >= 0){
+			promisedNumber = sequenceNumber;
+			acceptedNumber = sequenceNumber;
+			acceptedCommand = request;
+			accept(sequenceNumber);
+		}else{
+			//null signifies rejection
+			accept(null);
+		}
+	}
+	
 	/*********************** Hari's Paxos ************************************************/
 	
-	// paxos fields
-	private LamportClock highestPrepNSeen;
-	private LamportClock highestAcceptNSeen;
-	private String highestAcceptVSeen;
 	
 	//Prepare is ok if receivedSN is not null
 	//Else prepare sends a rejection
-	public void prepare(LamportClock receivedSN, LamportClock highestSN, String value){
-		try {
-			ServerTag serverTag = getServerTag(serverId);
-			socket.setSoTimeout(100); // send a datagram
-			socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
-			String command;
-
-			if(receivedSN != null)
-				command = String.format("acceptor prepare %s %s %s", receivedSN, highestSN, value);
-			else
-				command = "acceptor prepare reject";
-
-			DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
-			sendPacket.setAddress(serverTag.getAddress());
-			sendPacket.setPort(serverTag.getPort());
-			System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
-			socket.send(sendPacket);
-			incrementClock();
-		} catch (IOException e) {
-			System.err.println("Acceptor could not establish socket with leader ");
-			e.printStackTrace();
-		}
-	}
 
 	public void accept(LamportClock receivedSN){
 		try {
@@ -358,33 +343,6 @@ public class ServerMessenger extends Messenger {
 			System.err.println("Acceptor could not establish socket with leader ");
 			e.printStackTrace();
 		}
-	}
-
-	public void setDecision(String decision) {
-
-	}
-
-	public void acceptorPrepare(LamportClock sequenceNumber) {
-		if(sequenceNumber.compareTo(highestPrepNSeen) > 0){
-			highestPrepNSeen = sequenceNumber;
-			prepare(sequenceNumber, highestAcceptNSeen, highestAcceptVSeen);
-		}else{
-			//null signifies rejection
-			accept(null);
-		}
-	}
-
-	public void acceptorAccept(LamportClock sequenceNumber, String request) {
-		if(sequenceNumber.compareTo(highestPrepNSeen) >= 0){
-			highestPrepNSeen = sequenceNumber;
-			highestAcceptNSeen = sequenceNumber;
-			highestAcceptVSeen = request;
-			accept(sequenceNumber);
-		}else{
-			//null signifies rejection
-			accept(null);
-		}
-
 	}
 	
 	/******************* Lamport's Clock Methods *************************/
