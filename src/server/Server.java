@@ -9,14 +9,18 @@ package server;
  * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
  * Date: 4/20/2017
  */
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import messenger.ServerMessenger;
 import model.Order;
-import paxos.Acceptor;
-import paxos.Proposer;
 
 public class Server {
 	
@@ -28,8 +32,6 @@ public class Server {
 	private Map<String, Integer> inventory;
 	private Map<Integer, Order> orders; // list of pending orders.
 	private Map<String, List<Order>> users; // user to string records
-	private Acceptor acceptor;
-	private Proposer proposer;
 	
 	public static void main(String[] args) {
 		// parse the inventory file and start the server.

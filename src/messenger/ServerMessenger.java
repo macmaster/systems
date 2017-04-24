@@ -304,6 +304,12 @@ public class ServerMessenger extends Messenger {
 	}
 	
 	/*********************** Hari's Paxos ************************************************/
+	
+	// paxos fields
+	private LamportClock highestPrepNSeen;
+	private LamportClock highestAcceptNSeen;
+	private String highestAcceptVSeen;
+	
 	//Prepare is ok if receivedSN is not null
 	//Else prepare sends a rejection
 	public void prepare(LamportClock receivedSN, LamportClock highestSN, String value){
@@ -352,6 +358,33 @@ public class ServerMessenger extends Messenger {
 			System.err.println("Acceptor could not establish socket with leader ");
 			e.printStackTrace();
 		}
+	}
+
+	public void setDecision(String decision) {
+
+	}
+
+	public void acceptorPrepare(LamportClock sequenceNumber) {
+		if(sequenceNumber.compareTo(highestPrepNSeen) > 0){
+			highestPrepNSeen = sequenceNumber;
+			prepare(sequenceNumber, highestAcceptNSeen, highestAcceptVSeen);
+		}else{
+			//null signifies rejection
+			accept(null);
+		}
+	}
+
+	public void acceptorAccept(LamportClock sequenceNumber, String request) {
+		if(sequenceNumber.compareTo(highestPrepNSeen) >= 0){
+			highestPrepNSeen = sequenceNumber;
+			highestAcceptNSeen = sequenceNumber;
+			highestAcceptVSeen = request;
+			accept(sequenceNumber);
+		}else{
+			//null signifies rejection
+			accept(null);
+		}
+
 	}
 	
 	/******************* Lamport's Clock Methods *************************/

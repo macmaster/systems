@@ -14,9 +14,6 @@ import java.util.regex.Pattern;
 import messenger.ServerMessenger;
 import model.LamportClock;
 import model.ServerTag;
-import paxos.Acceptor;
-import paxos.Learner;
-import paxos.Proposer;
 
 /** ServerThread
  * Services a server request.
@@ -26,7 +23,7 @@ import paxos.Proposer;
  * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
  * Date: 4/20/2017
  */
-public class ServerThread extends Thread implements Acceptor, Proposer, Learner{
+public class ServerThread {
 	
 	private Server server;
 	private ServerMessenger messenger;
@@ -35,48 +32,6 @@ public class ServerThread extends Thread implements Acceptor, Proposer, Learner{
 	private Socket socket;
 	private DatagramPacket packet;
 	private ConnectionMode mode;
-
-	private LamportClock timestamp; // timestamp aka. sequenceNumber
-
-	private LamportClock highestPrepNSeen;
-	private LamportClock highestAcceptNSeen;
-	private String highestAcceptVSeen;
-
-	@Override
-	public void setDecision(String decision) {
-
-	}
-
-	@Override
-	public void acceptorPrepare(LamportClock sequenceNumber) {
-		if(sequenceNumber.compareTo(highestPrepNSeen) > 0){
-			highestPrepNSeen = sequenceNumber;
-			messenger.prepare(sequenceNumber, highestAcceptNSeen, highestAcceptVSeen);
-		}else{
-			//null signifies rejection
-			messenger.accept(null);
-		}
-	}
-
-	@Override
-	public void acceptorAccept(LamportClock sequenceNumber, String request) {
-		if(sequenceNumber.compareTo(highestPrepNSeen) >= 0){
-			highestPrepNSeen = sequenceNumber;
-			highestAcceptNSeen = sequenceNumber;
-			highestAcceptVSeen = request;
-			messenger.accept(sequenceNumber);
-		}else{
-			//null signifies rejection
-			messenger.accept(null);
-		}
-
-	}
-
-
-	@Override
-	public void proposerPrepare(LamportClock sequenceNumber, String request) {
-
-	}
 
 	private enum ConnectionMode {
 		TCP, UDP
@@ -178,7 +133,6 @@ public class ServerThread extends Thread implements Acceptor, Proposer, Learner{
 		String message = new String(packet.getData());
 		message = messenger.parseMessage(message);
 		Integer senderId = messenger.getSenderId();
-		timestamp = null;
 		try (DatagramSocket socket = new DatagramSocket()) {
 			System.out.println("UDP Service: " + message);
 			
