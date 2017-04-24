@@ -23,7 +23,7 @@ import model.ServerTag;
  * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
  * Date: 4/20/2017
  */
-public class ServerThread {
+public class ServerThread extends Thread {
 	
 	private Server server;
 	private ServerMessenger messenger;
