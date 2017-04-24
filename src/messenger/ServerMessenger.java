@@ -5,12 +5,19 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 
+import model.AcceptorMessage;
 import model.LamportClock;
+import model.ProposalMessage;
 import model.ServerTag;
 import server.Server;
 import server.ServerTCPListener;
@@ -37,8 +44,19 @@ public class ServerMessenger extends Messenger {
 	
 	// leader election
 	private Integer leader;
-	private Boolean isFirstLeaderElection;
-	private Integer numLeaderProposals;
+	
+	// Paxos Algorithm
+	private Integer senderId = -1; // set as a return handle when msgs are parsed.
+	
+	// proposer
+	private Integer numAccepts = 0, numRejects = 0; // number of acks a proposer tracks while it waits.
+	private LamportClock proposedNumber = null; // last accepted proposal number.
+	private String proposedCommand = null; // last accepted command tied to the last accepted proposal number.
+	
+	// acceptor
+	private LamportClock promisedNumber = new LamportClock(0, 0); // acceptor promises to reject below to this proposal.
+	private LamportClock acceptedNumber = null; // last accepted proposal number.
+	private String acceptedCommand = null; // last accepted command tied to the last accepted proposal number.
 	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
@@ -52,8 +70,6 @@ public class ServerMessenger extends Messenger {
 	public ServerMessenger(Server server) {
 		this.server = server;
 		this.queue = new PriorityQueue<LamportClock>();
-		this.isFirstLeaderElection = true;
-		this.numLeaderProposals = 0;
 	}
 	
 	/**
@@ -104,6 +120,188 @@ public class ServerMessenger extends Messenger {
 	@Override
 	protected String getMetadataFormat() {
 		return "<serverId> <numServers> <inventory_path>";
+	}
+	
+	/** incrementClock()
+	 * 
+	 * signals that an event has occurred. <br>
+	 * updates the lamport clock. <br>
+	 */
+	public synchronized void incrementClock() {
+		this.timestamp.increment();
+	}
+	
+	/** link to this specific server */
+	public Integer getServerId() {
+		return serverId;
+	}
+	
+	/** return link to the last server to send a msg */
+	public Integer getSenderId() {
+		return senderId;
+	}
+	
+	/**
+	 * UDP pings a server. acts as an acknowledgment.
+	 */
+	public void ping(ServerTag tag) throws IOException {
+		String msg = String.format("%s : %s", this.timestamp, "ping"); // ping message.
+		DatagramPacket sendPacket = new DatagramPacket(msg.getBytes(), msg.length());
+		sendPacket.setAddress(tag.getAddress());
+		sendPacket.setPort(tag.getPort());
+		socket.send(sendPacket);
+		incrementClock();
+	}
+	
+	/**
+	 * Send a UDP message to a server.
+	 * messages are tagged with "(pi, ti) : message"
+	 */
+	private void sendMessage(Integer serverId, String message) throws IOException {
+		ServerTag serverTag = getServerTag(serverId);
+		socket.setSoTimeout(100); // send a datagram
+		String string = String.format("%s : %s", this.timestamp, message);
+		DatagramPacket sendPacket = new DatagramPacket(string.getBytes(), string.length());
+		sendPacket.setAddress(serverTag.getAddress());
+		sendPacket.setPort(serverTag.getUDPPort());
+		System.out.format("Sending %s to %s : %d%n", message, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
+		socket.send(sendPacket);
+		incrementClock();
+	}
+	
+	/**
+	 * Receive a UDP message from a server. 100ms timeout.
+	 * message of form: "(pi, ti) : message"
+	 * @throws IOException 
+	 */
+	private String receiveMessage() throws IOException {
+		// receive the leader acknowledgement.
+		byte[] buffer = new byte[1024];
+		DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
+		socket.receive(receivePacket);
+		return parseMessage(new String(buffer));
+	}
+	
+	/** 
+	 * Parses a server-server message.  <br>
+	 * The lamport clock is striped and updated, and the msg is returned.
+	 */
+	public String parseMessage(String message) {
+		// update my timestamp and return msg.
+		String[] tokens = message.split(" : ", 2);
+		LamportClock clock = LamportClock.parseClock(tokens[0]);
+		Integer myts = this.timestamp.getTimestamp();
+		Integer otherts = clock.getTimestamp();
+		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
+		this.senderId = clock.getProcessId(); // return link
+		return (tokens[1]).trim();
+	}
+	
+	/******************* Paxos Algorithm Methods 
+	 * @throws InterruptedException *************************/
+	
+	public synchronized boolean proposal(String command) throws InterruptedException {
+		LamportClock number = this.timestamp.copy(); // proposal number
+		boolean original = false; // executed the originally proposed command.
+		proposePrepare(number);
+		while ((numAccepts + numRejects) < numServers) {
+			wait();
+		}
+		if (numAccepts >= ((numServers / 2) + 1)) {
+			if (proposedNumber == null || proposedCommand == null) {
+				this.proposedNumber = number;
+				this.proposedCommand = command;
+				original = true;
+			}
+		} else { // rejected prepare.
+			System.out.println("Proposal prepare was rejected!");
+			return false;
+		}
+		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
+		numRejects = numAccepts = 0;
+		this.proposedNumber = null;
+		this.proposedCommand = null;
+		return original;
+	}
+	
+	/**
+	 * Phase 1, prepare the proposal. 
+	 * Send the proposal number (lamport timestamp) to all the acceptors.
+	 * Acceptor quorum must consist of a majority.
+	 */
+	public synchronized void proposePrepare(LamportClock clock) {
+		// send to all other servers receiving ports
+		LamportClock number = clock.copy();
+		List<Integer> downedServers = new ArrayList<Integer>();
+		for (Integer id : tags.keySet()) {
+			try { // catch faulty servers.
+				sendMessage(id, new ProposalMessage(number).toString());
+				String ping = receiveMessage();
+				// System.out.format("%s from %d.%n", ping, id);
+			} catch (IOException e) {
+				System.err.println("could not establish socket for server " + id);
+				downedServers.add(id); // remove inactive server tag.
+				numServers = numServers - 1;
+				notifyAll();
+			}
+		}
+		
+		// remove faulty servers.
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
+	}
+	
+	/**
+	 * Phase 1, receive a prepare
+	 * If the proposal number is less than promised value, reject it!
+	 * Otherwise, promise it to accept only above the proposal number.
+	 * Send the most recent acceptedNumber and acceptedCommand this round. null otherwise. 
+	 * @throws IOException 
+	 */
+	public synchronized void receiveProposerPrepare(Integer senderId, LamportClock clock) {
+		try { // catch faulty servers.
+			if (clock.compareTo(promisedNumber) > 0) { // accept the prepare proposal.
+				promisedNumber.setClock(clock);
+				System.out.println("promised number: " + clock);
+				sendMessage(senderId, new AcceptorMessage(acceptedNumber, acceptedCommand).toString());
+			} else { // reject the proposal
+				sendMessage(senderId, new AcceptorMessage().toString());
+			}
+		} catch (IOException e) {
+			System.err.println("could not establish socket for server " + senderId);
+			tags.remove(senderId); // remove inactive server tag.
+			numServers = numServers - 1;
+			notifyAll();
+		}
+	}
+	
+	public synchronized void receiveAcceptorReject() {
+		System.out.format("recved acceptor reject!%n");
+		numRejects += 1;
+		notifyAll();
+	}
+	
+	public synchronized void receiveAcceptorAccept(LamportClock number, String command) {
+		// System.out.format("recved acceptor prepare: %s [%s]%n", number, command);
+		if (number != null && command != null) {
+			if (number.compareTo(proposedNumber) > 1) {
+				proposedNumber = number.copy();
+				proposedCommand = command;
+			}
+		}
+		
+		// acknowledge proposal
+		numAccepts += 1;
+		notifyAll();
+	}
+	
+	/**
+	 * Phase 2, propose a value. 
+	 * Send the proposal number (lamport timestamp) to all the acceptors.
+	 * Acceptor quorum must consist of a majority.
+	 */
+	public synchronized void proposeAccept(LamportClock clock) {
 	}
 	
 	/******************* Lamport's Clock Methods *************************/
@@ -232,7 +430,7 @@ public class ServerMessenger extends Messenger {
 	 * upon awakening, propose leader to other servers.
 	 * synchronously wait for replies of all other servers.
 	 */
-	public synchronized void electLeader(ServerTag tag, LamportClock timestamp, Integer leaderId) {
+	public synchronized void electLeader(LamportClock timestamp, Integer leaderId) {
 		// update my timestamp
 		Integer myts = this.timestamp.getTimestamp();
 		Integer otherts = timestamp.getTimestamp();
@@ -240,75 +438,14 @@ public class ServerMessenger extends Messenger {
 		
 		// get sender info
 		Integer senderId = timestamp.getProcessId();
-		ServerTag senderTag = getServerTag(senderId);
 		
-		// check if leader process already started
-		if (isFirstLeaderElection) {
-			numLeaderProposals = 1;
-			leader = Math.max(serverId, leaderId);
-			isFirstLeaderElection = false;
-		} else {
-			leader = Math.max(leader, leaderId);
-		}
-		
-		// check if server received leader proposal from all others
-		numLeaderProposals++;
-		if (numLeaderProposals == numServers - 1) {
-			isFirstLeaderElection = true; // for next leader election cycle
-		}
-		
-		// send back to sending port of sender server
-		List<Integer> downedServers = new ArrayList<Integer>();
-		try { // acknowledge leader message.
-			socket.setSoTimeout(100);
-			String buf = String.format("leader %d %s", leader, timestamp);
-			DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
-			sendPacket.setAddress(senderTag.getAddress());
-			sendPacket.setPort(senderTag.getPort());
-			socket.send(sendPacket);
-			incrementClock();
-		} catch (IOException e) {
-			System.err.println("could not establish socket for server " + senderId);
-			downedServers.add(senderId); // remove inactive server tag.
-			numServers = numServers - 1;
-			e.printStackTrace();
-		}
+		// when leader election starts.
+		leader = Math.max(serverId, leaderId);
 		
 		// message the leader to the others.
-		for (Integer id : tags.keySet()) {
-			if (id != serverId && id != senderId) {
-				try { // catch faulty servers.
-					messageLeader(id);
-				} catch (IOException e) {
-					System.err.println("could not establish socket for server " + id);
-					downedServers.add(id); // remove inactive server tag.
-					numServers = numServers - 1;
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		// remove faulty servers.
-		for (Integer id : downedServers) {
-			tags.remove(id);
-		}
-		
-	}
-	
-	/**
-	 * Initiate leader election. 
-	 * notify all servers to start proposing leaders
-	 */
-	public synchronized void startLeaderElection() {
-		// send default serverId
-		leader = serverId;
-		isFirstLeaderElection = true;
-		numLeaderProposals = 0;
-		
-		// send to all other servers receiving ports
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
-			if (id != serverId) {
+			if (id != serverId && id != senderId) {
 				try { // catch faulty servers.
 					messageLeader(id);
 				} catch (IOException e) {
@@ -343,7 +480,7 @@ public class ServerMessenger extends Messenger {
 		DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
 		socket.receive(receivePacket);
 		command = new String(buffer);
-		String tokens[] = command.split(" ");
+		String tokens[] = command.split(" ", 3);
 		
 		// update my leader.
 		Integer leaderId = Integer.parseInt(tokens[1]);
@@ -353,18 +490,5 @@ public class ServerMessenger extends Messenger {
 		Integer myts = this.timestamp.getTimestamp();
 		Integer otherts = LamportClock.parseClock(tokens[2]).getTimestamp();
 		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-	}
-	
-	/** incrementClock()
-	 * 
-	 * signals that an event has occurred. <br>
-	 * updates the lamport clock. <br>
-	 */
-	public synchronized void incrementClock() {
-		this.timestamp.increment();
-	}
-	
-	public Integer getServerId() {
-		return serverId;
 	}
 }

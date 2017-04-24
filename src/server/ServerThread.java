@@ -6,9 +6,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import messenger.ServerMessenger;
 import model.LamportClock;
@@ -25,10 +26,10 @@ import model.ServerTag;
 public class ServerThread extends Thread {
 	
 	private Server server;
-	private Socket socket;
 	private ServerMessenger messenger;
 	private static ReentrantLock requestLock = new ReentrantLock(true);
 	
+	private Socket socket;
 	private DatagramPacket packet;
 	private ConnectionMode mode;
 	
@@ -129,29 +130,83 @@ public class ServerThread extends Thread {
 	  * Sends a response packet.
 	  */
 	public void serviceUDP() {
-		LamportClock timestamp = null;
-		String command = "", response = "";
+		String message = new String(packet.getData());
+		message = messenger.parseMessage(message);
+		Integer senderId = messenger.getSenderId();
 		try (DatagramSocket socket = new DatagramSocket()) {
-			command = new String(packet.getData());
-			System.out.println("UDP Service: " + command);
+			System.out.println("UDP Service: " + message);
 			
 			// Parse ServerTag for reply.
 			String returnAddress = packet.getAddress().getHostAddress();
-			String tagString = String.format("<%s>:<%d>", returnAddress, packet.getPort());
+			String tagString = String.format("%s:%d", returnAddress, packet.getPort());
 			ServerTag tag = ServerTag.parse(tagString);
 			
 			// DEBUG: rec ping.. ignore message.
-			if (command.equals("ping")) {
+			if (message.equals("ping")) {
 				System.out.println("Receieved a ping...");
 			}
 			
-			// command for leader election.
-			else if (command.startsWith("leader")) {
-				String[] tokens = command.split(" ", 3);
-				timestamp = LamportClock.parseClock(tokens[2]);
-				Integer leaderId = Integer.parseInt(tokens[1]);
-				messenger.electLeader(tag, timestamp, leaderId);
+			// proposer message for prepare / accept
+			if (message.startsWith("proposer")) {
+				messenger.ping(tag);
+				// System.out.format("recv proposer msg: [%s]%n", message);
+				
+				String command = null; // proposed command.
+				LamportClock number = null; // proposal number
+				if (message.startsWith("proposer prepare")) {
+					String prepareRegex = "prepare (\\(\\d+, \\d+\\))";
+					Pattern preparePattern = Pattern.compile(prepareRegex);
+					Matcher matcher = preparePattern.matcher(message);
+					matcher.find();
+					number = LamportClock.parseClock(matcher.group(1));
+					messenger.receiveProposerPrepare(senderId, number);
+				} else if (message.contains("proposer accept")) {
+					String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\))";
+					Pattern acceptPattern = Pattern.compile(acceptRegex);
+					Matcher matcher = acceptPattern.matcher(message);
+					matcher.find();
+					command = matcher.group(1);
+					number = LamportClock.parseClock(matcher.group(2));
+					// TODO: recv proposer accept.
+				}
 			}
+			
+			// proposer message for prepare / accept
+			if (message.startsWith("acceptor")) {
+				messenger.ping(tag);
+				// System.out.format("recv acceptor msg: [%s]%n", message);
+				
+				String command = null; // proposed command.
+				LamportClock number = null; // proposal number
+				if (message.startsWith("acceptor accept")) {
+					String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
+					Pattern acceptPattern = Pattern.compile(acceptRegex);
+					Matcher matcher = acceptPattern.matcher(message);
+					matcher.find();
+					command = matcher.group(1);
+					number = LamportClock.parseClock(matcher.group(2));
+					messenger.receiveAcceptorAccept(number, command);
+				} else if (message.startsWith("acceptor reject")) {
+					messenger.receiveAcceptorReject();
+				}
+			}
+			
+			// command for leader election.
+			// else if (command.startsWith("leader")) {
+			// String[] tokens = command.split(" ", 3);
+			// timestamp = LamportClock.parseClock(tokens[2]);
+			// Integer leaderId = Integer.parseInt(tokens[1]);
+			//
+			// // acknowledge leader message.
+			// String buf = String.format("leader %d %s", Math.max(messenger.getServerId(), timestamp.getProcessId()), timestamp);
+			// DatagramPacket sendPacket = new DatagramPacket(buf.getBytes(), buf.length());
+			// sendPacket.setAddress(tag.getAddress());
+			// sendPacket.setPort(tag.getPort());
+			// socket.send(sendPacket);
+			// messenger.incrementClock();
+			//
+			// messenger.electLeader(timestamp, leaderId);
+			// }
 			
 			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
 			/** // service intraserver request.
@@ -215,4 +270,5 @@ public class ServerThread extends Thread {
 		// client response
 		return response;
 	}
+	
 }

@@ -28,6 +28,10 @@ public class LamportClock implements Comparable<LamportClock> {
 		this.timestamp = timestamp;
 	}
 	
+	public LamportClock copy(){
+		return new LamportClock(timestamp, processId);
+	}
+	
 	public LamportClock setClock(LamportClock clock) {
 		if (clock != null) {
 			this.processId = clock.processId;

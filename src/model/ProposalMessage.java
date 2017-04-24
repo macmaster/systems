@@ -1,7 +1,5 @@
 
-package paxos;
-
-import model.LamportClock;
+package model;
 
 /** ProposalMessage
  * Proposal messages for the paxos algorithm.
@@ -26,15 +24,28 @@ public class ProposalMessage {
 	/** ProposalMessage() <br>
 	 * 
 	 * Constructs a new Proposal Message. <br>
+	 * proposes an accept .
 	 * @param proposalTimestamp lamport timestamp functions as proposal number.
 	 * @param command server transaction functions as proposal value.
-	 * @param accept true if the message is an "accept" request. "prepare" otherwise.
 	 */
-	public ProposalMessage(LamportClock clock, String command, boolean accept) {
+	public ProposalMessage(LamportClock clock, String command) {
 		this.number = clock;
 		this.command = command;
-		this.type = accept ? "accept" : "prepare";
+		this.type = "accept";
 	}
+	
+	/** ProposalMessage() <br>
+	 * 
+	 * Constructs a new Proposal Message. <br>
+	 * proposes a prepare.
+	 * @param proposalTimestamp lamport timestamp functions as proposal number.
+	 * @param command server transaction functions as proposal value.
+	 */
+	public ProposalMessage(LamportClock clock) {
+		this.number = clock;
+		this.type = "prepare";
+	}
+
 	
 	public LamportClock getNumber() {
 		return number;
@@ -48,13 +59,16 @@ public class ProposalMessage {
 		return type;
 	}
 	
-	public void setCommand(String command) {
-		this.command = command;
-	}
 	
 	@Override
 	public String toString() {
-		return String.format("proposal %s %s %s", type, number, command);
+		if(type.equals("prepare")){
+			return String.format("proposer prepare %s", number);
+		} else if(type.equals("accept")){
+			return String.format("proposer accept %s %s", command, number);			
+		} else { // bad proposal message.
+			return null;
+		}
 	}
 	
 }

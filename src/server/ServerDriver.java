@@ -13,6 +13,7 @@ import java.net.SocketException;
 
 import messenger.Messenger;
 import messenger.ServerMessenger;
+import model.LamportClock;
 
 /** ServerClient <br>
  * @author ronny
@@ -39,12 +40,15 @@ public class ServerDriver {
 				String[] tokens = input.split(" ");
 				
 				// execute command
-				if (input.startsWith("leader")) {
-					System.out.println("[leader command]");
-					messenger.startLeaderElection();
+				if (input.startsWith("prepare")) {
+					System.out.println("[prepare command]");
+					messenger.proposePrepare(new LamportClock(777, 777));
 				} else if (input.startsWith("exit")) {
 					System.out.println("[exit command]");
 					System.exit(0);
+				} else if (input.startsWith("proposal")) {
+					System.out.println("[proposal command]");
+					messenger.proposal(input.split(" ", 2)[1]);
 				} else {
 					System.out.println("unknown command...");
 				}

@@ -1,0 +1,11 @@
+
+proposer prepare (pi, ti) // send to every node. called acceptors. must get back a majority.
+
+acceptor accept [command] (ppi, pti) // accepts prepare. returns previously accepted proposal num and value if any. otherwise null.
+acceptor reject // if n < np. deny for optimization.
+
+proposer accept [command] (pi, ti)
+
+learn [command] (ppi, pti) // sent by proposer to everyone but himself at the end.  
+
+
