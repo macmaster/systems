@@ -8,4 +8,3 @@ proposer accept [command] (pi, ti)
 
 learn [command] (ppi, pti) // sent by proposer to everyone but himself at the end.  
 
-
