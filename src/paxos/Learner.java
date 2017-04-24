@@ -9,5 +9,7 @@ package paxos;
  * Date: 4/20/2017
  */
 public interface Learner {
+
+    void setDecision(String decision);
 	
 }

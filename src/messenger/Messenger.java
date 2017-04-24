@@ -4,6 +4,7 @@ package messenger;
 import java.io.*;
 import java.util.*;
 
+import model.LamportClock;
 import model.ServerTag;
 
 /** Messenger
@@ -86,4 +87,5 @@ public abstract class Messenger {
     public ServerTag getServerTag(Integer serverId) {
         return tags.get(serverId);
     }
+
 }

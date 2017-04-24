@@ -1,5 +1,7 @@
 package paxos;
 
+import model.LamportClock;
+
 /** Proposer.java
  * Proposer Strategy methods for a paxos process.
  * 
@@ -9,5 +11,6 @@ package paxos;
  * Date: 4/20/2017
  */
 public interface Proposer {
-	
+
+    void proposerPrepare(LamportClock sequenceNumber, String request);
 }

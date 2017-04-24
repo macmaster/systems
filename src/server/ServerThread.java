@@ -13,6 +13,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import messenger.ServerMessenger;
 import model.LamportClock;
 import model.ServerTag;
+import paxos.Acceptor;
+import paxos.Learner;
+import paxos.Proposer;
 
 /** ServerThread
  * Services a server request.
@@ -22,7 +25,7 @@ import model.ServerTag;
  * UT-EIDs: gn3544, hk8633, trs2277,  rpm953
  * Date: 4/20/2017
  */
-public class ServerThread extends Thread {
+public class ServerThread extends Thread implements Acceptor, Proposer, Learner{
 	
 	private Server server;
 	private Socket socket;
@@ -31,7 +34,49 @@ public class ServerThread extends Thread {
 	
 	private DatagramPacket packet;
 	private ConnectionMode mode;
-	
+
+	private LamportClock timestamp; // timestamp aka. sequenceNumber
+
+	private LamportClock highestPrepNSeen;
+	private LamportClock highestAcceptNSeen;
+	private String highestAcceptVSeen;
+
+	@Override
+	public void setDecision(String decision) {
+
+	}
+
+	@Override
+	public void acceptorPrepare(LamportClock sequenceNumber) {
+		if(sequenceNumber.compareTo(highestPrepNSeen) > 0){
+			highestPrepNSeen = sequenceNumber;
+			messenger.prepare(sequenceNumber, highestAcceptNSeen, highestAcceptVSeen);
+		}else{
+			//null signifies rejection
+			messenger.accept(null);
+		}
+	}
+
+	@Override
+	public void acceptorAccept(LamportClock sequenceNumber, String request) {
+		if(sequenceNumber.compareTo(highestPrepNSeen) >= 0){
+			highestPrepNSeen = sequenceNumber;
+			highestAcceptNSeen = sequenceNumber;
+			highestAcceptVSeen = request;
+			messenger.accept(sequenceNumber);
+		}else{
+			//null signifies rejection
+			messenger.accept(null);
+		}
+
+	}
+
+
+	@Override
+	public void proposerPrepare(LamportClock sequenceNumber, String request) {
+
+	}
+
 	private enum ConnectionMode {
 		TCP, UDP
 	};
@@ -129,7 +174,7 @@ public class ServerThread extends Thread {
 	  * Sends a response packet.
 	  */
 	public void serviceUDP() {
-		LamportClock timestamp = null;
+		timestamp = null;
 		String command = "", response = "";
 		try (DatagramSocket socket = new DatagramSocket()) {
 			command = new String(packet.getData());
@@ -152,6 +197,19 @@ public class ServerThread extends Thread {
 				Integer leaderId = Integer.parseInt(tokens[1]);
 				// elect new leader
 				messenger.electLeader(tag, timestamp, leaderId);
+			}
+
+			// command from proposer/leader to this acceptor to prepare
+			else if (command.startsWith("proposer")) {
+				String[] tokens = command.split(" ", 3);
+				if(tokens[1].equals("prepare")) {
+					// Parse the value based on the substring after the sequenceNumber
+					LamportClock seqNumber = new LamportClock(Integer.parseInt(tokens[2]), messenger.getServerId());
+					acceptorPrepare(seqNumber);
+				}else{
+					//(tokens[1].equals("accept"))
+					String value = command.substring("proposer prepare".length() + 2 + tokens[2].length());
+				}
 			}
 			
 			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
