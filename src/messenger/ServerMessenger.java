@@ -197,8 +197,7 @@ public class ServerMessenger extends Messenger {
 		return (tokens[1]).trim();
 	}
 	
-	/******************* Paxos Algorithm Methods 
-	 * @throws InterruptedException *************************/
+	/******************* Paxos Algorithm Methods *************************/
 	
 	public synchronized boolean proposal(String command) throws InterruptedException {
 		LamportClock number = this.timestamp.copy(); // proposal number
@@ -302,6 +301,57 @@ public class ServerMessenger extends Messenger {
 	 * Acceptor quorum must consist of a majority.
 	 */
 	public synchronized void proposeAccept(LamportClock clock) {
+	}
+	
+	/*********************** Hari's Paxos ************************************************/
+	//Prepare is ok if receivedSN is not null
+	//Else prepare sends a rejection
+	public void prepare(LamportClock receivedSN, LamportClock highestSN, String value){
+		try {
+			ServerTag serverTag = getServerTag(serverId);
+			socket.setSoTimeout(100); // send a datagram
+			socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+			String command;
+
+			if(receivedSN != null)
+				command = String.format("acceptor prepare %s %s %s", receivedSN, highestSN, value);
+			else
+				command = "acceptor prepare reject";
+
+			DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
+			sendPacket.setAddress(serverTag.getAddress());
+			sendPacket.setPort(serverTag.getPort());
+			System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
+			socket.send(sendPacket);
+			incrementClock();
+		} catch (IOException e) {
+			System.err.println("Acceptor could not establish socket with leader ");
+			e.printStackTrace();
+		}
+	}
+
+	public void accept(LamportClock receivedSN){
+		try {
+			ServerTag serverTag = getServerTag(serverId);
+			socket.setSoTimeout(100); // send a datagram
+			socket.connect(serverTag.getAddress(), serverTag.getUDPPort());
+			String command;
+
+			if(receivedSN != null)
+				command = String.format("acceptor accept %s", receivedSN);
+			else
+				command = "acceptor accept reject";
+
+			DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
+			sendPacket.setAddress(serverTag.getAddress());
+			sendPacket.setPort(serverTag.getPort());
+			System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
+			socket.send(sendPacket);
+			incrementClock();
+		} catch (IOException e) {
+			System.err.println("Acceptor could not establish socket with leader ");
+			e.printStackTrace();
+		}
 	}
 	
 	/******************* Lamport's Clock Methods *************************/
@@ -491,4 +541,5 @@ public class ServerMessenger extends Messenger {
 		Integer otherts = LamportClock.parseClock(tokens[2]).getTimestamp();
 		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
 	}
+
 }

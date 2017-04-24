@@ -15,6 +15,8 @@ import java.util.Map.Entry;
 
 import messenger.ServerMessenger;
 import model.Order;
+import paxos.Acceptor;
+import paxos.Proposer;
 
 public class Server {
 	
@@ -26,6 +28,8 @@ public class Server {
 	private Map<String, Integer> inventory;
 	private Map<Integer, Order> orders; // list of pending orders.
 	private Map<String, List<Order>> users; // user to string records
+	private Acceptor acceptor;
+	private Proposer proposer;
 	
 	public static void main(String[] args) {
 		// parse the inventory file and start the server.
