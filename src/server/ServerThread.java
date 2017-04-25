@@ -103,7 +103,6 @@ public class ServerThread extends Thread {
 					}
 					response = execute(command);
 					messenger.incrementClock();
-					messenger.release(command);
 					requestLock.unlock(); // release critical section
 					pinger.kill();
 					ostream.println(response);
@@ -175,12 +174,10 @@ public class ServerThread extends Thread {
 			
 			// proposer message for prepare / accept
 			if (message.startsWith("acceptor")) {
-				messenger.ping(tag);
-				// System.out.format("recv acceptor msg: [%s]%n", message);
-				
+				messenger.ping(tag);				
 				String command = null; // proposed command.
 				LamportClock number = null; // proposal number
-				if (message.startsWith("acceptor accept")) {
+				if (message.startsWith("acceptor accept") || message.startsWith("acceptor choose")) {
 					String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
 					Pattern acceptPattern = Pattern.compile(acceptRegex);
 					Matcher matcher = acceptPattern.matcher(message);
@@ -188,45 +185,28 @@ public class ServerThread extends Thread {
 					command = matcher.group(1);
 					command = command.equals("null") ? null : command;
 					number = LamportClock.parseClock(matcher.group(2));
-					messenger.receiveAcceptorAccept(number, command);
-				} else if (message.startsWith("acceptor reject")) {
+					if(message.startsWith("acceptor accept"))
+						messenger.receiveAcceptorAccept(number, command);
+					else if(message.startsWith("acceptor choose"))
+						messenger.receiveAcceptorChoose(number, command);
+				}  else if (message.startsWith("acceptor reject")) {
 					messenger.receiveAcceptorReject();
 				}
 			}
 
 			// message for learner
-			String command = null; // proposed command
 			if (message.startsWith("learn")) {
 				messenger.ping(tag);
-
-				String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
-				Pattern acceptPattern = Pattern.compile(acceptRegex);
-				Matcher matcher = acceptPattern.matcher(message);
+				String learnRegex = "learn \\[(.*?)\\])";
+				Pattern learnPattern = Pattern.compile(learnRegex);
+				Matcher matcher = learnPattern.matcher(message);
 				matcher.find();
-				command = matcher.group(1);
+				String command = matcher.group(1);
+				
+				// fast-forward server.
 				execute(command);
+				messenger.receiveLearnedValue(command);
 			}
-			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
-			/** // service intraserver request.
-			else if (command.startsWith("request")) {
-				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-				messenger.receiveRequest(timestamp);
-			}
-			
-			// service intraserver release.
-			else if (command.startsWith("release")) {
-				// execute the command before removing from queue.
-				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-				command = reader.readLine();
-				execute(command);
-				messenger.receiveRelease(timestamp);
-			}
-			
-			// service intraserver acknowledgement.
-			else if (command.startsWith("acknowledge")) {
-				timestamp = LamportClock.parseClock(command.split(" ", 2)[1]);
-				messenger.receiveAcknowledgement(timestamp);
-			}*/
 			
 		} catch (IOException err) {
 			System.err.println("Error servicing UDP request. exiting...");

@@ -405,7 +405,6 @@ public class ServerMessenger extends Messenger {
 	 */
 
 	public synchronized void receiveAcceptorChoose(LamportClock number, String command) {
-		System.out.format("recved acceptor accept!%n");
 		numAccepts += 1;
 		notifyAll();
 	}
@@ -418,7 +417,7 @@ public class ServerMessenger extends Messenger {
 		//send final command for execution to all but myself
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
-			if (id != senderId) {
+			if (id != serverId) {
 				try { // catch faulty servers.
 					sendMessage(id, new LearnerMessage(command).toString());
 					String ping = receiveMessage();
