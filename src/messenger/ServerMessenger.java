@@ -437,7 +437,7 @@ public class ServerMessenger extends Messenger {
 	}
 
 	public synchronized void receiveLearnedValue(String command) {
-
+		System.out.format("Learned that the value was: [%s]%n", command);
 	}
 
 	/******************* Lamport's Clock Methods *************************/
