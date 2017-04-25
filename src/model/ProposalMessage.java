@@ -44,9 +44,6 @@ public class ProposalMessage {
 		this.number = clock;
 		this.type = "prepare";
 	}
-
-	//TODO: Create new constructor for final execution.
-
 	
 	public LamportClock getNumber() {
 		return number;

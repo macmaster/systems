@@ -260,7 +260,8 @@ public class ServerMessenger extends Messenger {
 
 		// value accepted. notify the learners (NOTE: shouldn't we be printing out 'acceptedCommand'?)
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
-		receiveLearnerValue(proposedNumber, proposedCommand);
+		sendLearnedValue(proposedNumber, proposedCommand);
+
 		//send to all other but yourself
 
 		// clear quorum for next phase.
@@ -416,15 +417,14 @@ public class ServerMessenger extends Messenger {
 	 * Learner learns the value that was chosen.  <br>
 	 * Execute the command and advance the Paxos round.
 	 */
-	public synchronized void receiveLearnerValue(LamportClock number, String command) {
+	public synchronized void sendLearnedValue(LamportClock number, String command) {
 		//send final command for execution to all but myself
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
 			if (id != senderId) {
 				try { // catch faulty servers.
-					sendMessage(id, new ProposalMessage(number, command).toString());
+					sendMessage(id, new ProposalMessage(number, command).toString()); //TODO: new message class, override
 					String ping = receiveMessage();
-					// System.out.format("%s from %d.%n", ping, id);
 				} catch (IOException e) {
 					System.err.println("could not establish socket for server " + id);
 					downedServers.add(id); // remove inactive server tag.
@@ -438,9 +438,12 @@ public class ServerMessenger extends Messenger {
 		for (Integer id : downedServers) {
 			tags.remove(id);
 		}
+	}
+
+	public synchronized void receiveLearnedValue(String command) {
 
 	}
-	
+
 	/******************* Lamport's Clock Methods *************************/
 	
 	public synchronized void request() throws InterruptedException {
