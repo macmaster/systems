@@ -7,5 +7,5 @@ acceptor choose [command] (pi, ti) //
 
 proposer accept [command] (pi, ti)
 
-learn [command] (pi, ti) // sent by proposer to everyone but himself at the end.  
+learn [command] // sent by proposer to everyone but himself at the end.
 
