@@ -98,7 +98,9 @@ public class ServerThread extends Thread {
 				else if (command.startsWith("purchase") || command.startsWith("cancel")) {
 					pinger.start();
 					requestLock.lock(); // request critical section
-					messenger.request(); //TODO: transform while loop
+					while (!messenger.proposal(command)) {
+						wait();
+					}
 					response = execute(command);
 					messenger.incrementClock();
 					messenger.release(command);
@@ -167,7 +169,7 @@ public class ServerThread extends Thread {
 					matcher.find();
 					command = matcher.group(1);
 					number = LamportClock.parseClock(matcher.group(2));
-					// TODO: recv proposer accept.
+					messenger.receiveProposerAccept(senderId, number, command);
 				}
 			}
 			
@@ -191,7 +193,19 @@ public class ServerThread extends Thread {
 					messenger.receiveAcceptorReject();
 				}
 			}
-			
+
+			// message for learner
+			String command = null; // proposed command
+			if (message.startsWith("learn")) {
+				messenger.ping(tag);
+
+				String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
+				Pattern acceptPattern = Pattern.compile(acceptRegex);
+				Matcher matcher = acceptPattern.matcher(message);
+				matcher.find();
+				command = matcher.group(1);
+				execute(command);
+			}
 			/** Lamport's Algorithm commands. TODO: refactor to paxos. */
 			/** // service intraserver request.
 			else if (command.startsWith("request")) {
