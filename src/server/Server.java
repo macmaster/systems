@@ -32,6 +32,7 @@ public class Server {
 	private Map<String, Integer> inventory;
 	private Map<Integer, Order> orders; // list of pending orders.
 	private Map<String, List<Order>> users; // user to string records
+	public ArrayList<String> commandHistory;
 	
 	public static void main(String[] args) {
 		// parse the inventory file and start the server.
@@ -49,6 +50,7 @@ public class Server {
 		this.inventory = new HashMap<String, Integer>();
 		this.users = new HashMap<String, List<Order>>();
 		this.orders = new HashMap<Integer, Order>();
+		this.commandHistory = new ArrayList<>();
 	}
 	
 	/** getMessenger()

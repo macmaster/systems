@@ -52,9 +52,7 @@ public class ServerMessenger extends Messenger {
 	private LamportClock promisedNumber = new LamportClock(0, 0); // acceptor promises to reject below to this proposal.
 	private LamportClock acceptedNumber = null; // last accepted proposal number.
 	private String acceptedCommand = null; // last accepted command tied to the last accepted proposal number.
-	
-	private boolean decided = false;
-	
+
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
 	private LamportClock timestamp;
@@ -418,7 +416,8 @@ public class ServerMessenger extends Messenger {
 		for (Integer id : tags.keySet()) {
 			if (id != serverId) {
 				try { // catch faulty servers.
-					sendMessage(id, new LearnerMessage(command).toString());
+					//TODO: A very large command history can overflow the UDP datapacket size. Need a larger datapacket than 1024
+					sendMessage(id, (new LearnerMessage(command).toString()) + "," + String.join(",", server.commandHistory ));
 					String ping = receiveMessage();
 				} catch (IOException e) {
 					System.err.println("could not establish socket for server " + id);

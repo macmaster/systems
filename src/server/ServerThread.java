@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Socket;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
@@ -205,7 +204,22 @@ public class ServerThread extends Thread {
 				Matcher matcher = learnPattern.matcher(message);
 				matcher.find();
 				String command = matcher.group(1);
-				
+
+				String concatCommands = message.substring(message.indexOf(",") + 1);
+
+				String[] prevCommands = concatCommands.split(",");
+				for(String aCommand: prevCommands){
+					System.out.println("A past command: " + aCommand);
+					execute(aCommand);
+				}
+//				while(prevCommands.length() != 0) {
+//					int nextIndex = prevCommands.indexOf(",");
+//					if(nextIndex >= 0) {
+//						System.out.println("A commands: " + prevCommands.substring(0, nextIndex));
+//						prevCommands = message.substring(nextIndex + 1);
+//					}
+//				}
+
 				// fast-forward server.
 				execute(command);
 				messenger.receiveLearnedValue(command);
@@ -229,11 +243,13 @@ public class ServerThread extends Thread {
 			if (opcode.equals("list")) {
 				response = server.list();
 			} else if (opcode.equals("purchase")) {
+				server.commandHistory.add(command);
 				String user = tokens[1];
 				String product = tokens[2];
 				Integer quantity = Integer.parseInt(tokens[3]);
 				response = server.purchase(user, product, quantity);
 			} else if (opcode.equals("cancel")) {
+				server.commandHistory.add(command);
 				Integer orderId = Integer.parseInt(tokens[1]);
 				response = server.cancel(orderId);
 			} else if (opcode.equals("search")) {

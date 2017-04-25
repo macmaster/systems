@@ -129,11 +129,7 @@ public class Client {
 					System.out.println(response);
 				}
 			}
-		} catch (SocketTimeoutException signal) {
-			// timeout, server is dead. switch servers.
-			refreshConnection();
-			sendTCPRequest(contents);
-		} catch (SocketException signal) {
+		} catch (SocketTimeoutException | SocketException signal) {
 			// timeout, server is dead. switch servers.
 			refreshConnection();
 			sendTCPRequest(contents);
