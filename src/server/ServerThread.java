@@ -105,6 +105,7 @@ public class ServerThread extends Thread {
 					}
 					response = execute(command);
 					messenger.incrementClock();
+					messenger.receiveLearnedValue(command);
 					requestLock.unlock(); // release critical section
 					pinger.kill();
 					ostream.println(response);

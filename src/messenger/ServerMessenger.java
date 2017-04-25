@@ -255,7 +255,7 @@ public class ServerMessenger extends Messenger {
 		// value accepted. notify the learners (NOTE: shouldn't we be printing out 'acceptedCommand'?)
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
 		
-		// send to all other but yourself
+		// send to all other but yourself. 
 		sendLearnedValue(proposedNumber, proposedCommand);
 		
 		// clear quorum for next phase.
