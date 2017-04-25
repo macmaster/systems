@@ -205,12 +205,14 @@ public class ServerThread extends Thread {
 				matcher.find();
 				String command = matcher.group(1);
 
-				String concatCommands = message.substring(message.indexOf(",") + 1);
+				if(server.commandHistory.isEmpty()) {
+					String concatCommands = message.substring(message.indexOf(",") + 1);
 
-				String[] prevCommands = concatCommands.split(",");
-				for(String aCommand: prevCommands){
-					System.out.println("A past command: " + aCommand);
-					execute(aCommand);
+					String[] prevCommands = concatCommands.split(",");
+					for (String aCommand : prevCommands) {
+						System.out.println("A past command: " + aCommand);
+						execute(aCommand);
+					}
 				}
 //				while(prevCommands.length() != 0) {
 //					int nextIndex = prevCommands.indexOf(",");
