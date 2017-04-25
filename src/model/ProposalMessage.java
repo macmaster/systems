@@ -25,7 +25,7 @@ public class ProposalMessage {
 	 * 
 	 * Constructs a new Proposal Message. <br>
 	 * proposes an accept .
-	 * @param proposalTimestamp lamport timestamp functions as proposal number.
+	 * @param clock lamport timestamp functions as proposal number.
 	 * @param command server transaction functions as proposal value.
 	 */
 	public ProposalMessage(LamportClock clock, String command) {
@@ -38,13 +38,14 @@ public class ProposalMessage {
 	 * 
 	 * Constructs a new Proposal Message. <br>
 	 * proposes a prepare.
-	 * @param proposalTimestamp lamport timestamp functions as proposal number.
-	 * @param command server transaction functions as proposal value.
+	 * @param clock lamport timestamp functions as proposal number.
 	 */
 	public ProposalMessage(LamportClock clock) {
 		this.number = clock;
 		this.type = "prepare";
 	}
+
+	//TODO: Create new constructor for final execution.
 
 	
 	public LamportClock getNumber() {

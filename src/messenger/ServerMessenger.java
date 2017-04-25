@@ -58,6 +58,8 @@ public class ServerMessenger extends Messenger {
 	private LamportClock promisedNumber = new LamportClock(0, 0); // acceptor promises to reject below to this proposal.
 	private LamportClock acceptedNumber = null; // last accepted proposal number.
 	private String acceptedCommand = null; // last accepted command tied to the last accepted proposal number.
+
+    private boolean decided = false;
 	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
@@ -245,7 +247,7 @@ public class ServerMessenger extends Messenger {
 		numRejects = numAccepts = 0;
 		
 		// phase 2: propose an accept.
-		proposeAccept(proposedNumber, proposedCommand);
+		sendAcceptorAccept(proposedNumber, proposedCommand);
 		while ((numAccepts + numRejects) < numServers) {
 			wait();
 		}
@@ -255,10 +257,12 @@ public class ServerMessenger extends Messenger {
 			System.out.println("Proposal accept was rejected!");
 			return false;
 		}
-		
-		// value accepted. notify the learners
+
+		// value accepted. notify the learners (NOTE: shouldn't we be printing out 'acceptedCommand'?)
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
-		
+		receiveLearnerValue(proposedNumber, proposedCommand);
+		//send to all other but yourself
+
 		// clear quorum for next phase.
 		numRejects = numAccepts = 0;
 		this.proposedNumber = null;
@@ -352,7 +356,7 @@ public class ServerMessenger extends Messenger {
 	 * Send the proposal number (lamport timestamp) to all the acceptors.
 	 * Acceptor quorum must consist of a majority.
 	 */
-	public synchronized void proposeAccept(LamportClock number, String command) {
+	public synchronized void sendAcceptorAccept(LamportClock number, String command) {
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
 			try { // catch faulty servers.
@@ -401,7 +405,11 @@ public class ServerMessenger extends Messenger {
 	/** 
 	 * Proposer learns that the acceptor has chosen its value. <br>
 	 */
+
 	public synchronized void receiveAcceptorChoose(LamportClock number, String command) {
+		System.out.format("recved acceptor accept!%n");
+		numAccepts += 1;
+		notifyAll();
 	}
 	
 	/** 
@@ -409,7 +417,28 @@ public class ServerMessenger extends Messenger {
 	 * Execute the command and advance the Paxos round.
 	 */
 	public synchronized void receiveLearnerValue(LamportClock number, String command) {
-		
+		//send final command for execution to all but myself
+		List<Integer> downedServers = new ArrayList<Integer>();
+		for (Integer id : tags.keySet()) {
+			if (id != senderId) {
+				try { // catch faulty servers.
+					sendMessage(id, new ProposalMessage(number, command).toString());
+					String ping = receiveMessage();
+					// System.out.format("%s from %d.%n", ping, id);
+				} catch (IOException e) {
+					System.err.println("could not establish socket for server " + id);
+					downedServers.add(id); // remove inactive server tag.
+					numServers = numServers - 1;
+					notifyAll();
+				}
+			}
+		}
+
+		// remove faulty servers.
+		for (Integer id : downedServers) {
+			tags.remove(id);
+		}
+
 	}
 	
 	/******************* Lamport's Clock Methods *************************/
