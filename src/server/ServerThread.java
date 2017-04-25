@@ -178,7 +178,7 @@ public class ServerThread extends Thread {
 				String command = null; // proposed command.
 				LamportClock number = null; // proposal number
 				if (message.startsWith("acceptor accept") || message.startsWith("acceptor choose")) {
-					String acceptRegex = "accept \\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
+					String acceptRegex = "\\[(.*?)\\] (\\(\\d+, \\d+\\)|null)";
 					Pattern acceptPattern = Pattern.compile(acceptRegex);
 					Matcher matcher = acceptPattern.matcher(message);
 					matcher.find();
@@ -197,7 +197,7 @@ public class ServerThread extends Thread {
 			// message for learner
 			if (message.startsWith("learn")) {
 				messenger.ping(tag);
-				String learnRegex = "learn \\[(.*?)\\])";
+				String learnRegex = "learn \\[(.*?)\\]";
 				Pattern learnPattern = Pattern.compile(learnRegex);
 				Matcher matcher = learnPattern.matcher(message);
 				matcher.find();
