@@ -63,7 +63,7 @@ public class ProposalMessage {
 		if(type.equals("prepare")){
 			return String.format("proposer prepare %s", number);
 		} else if(type.equals("accept")){
-			return String.format("proposer accept %s %s", command, number);			
+			return String.format("proposer accept [%s] %s", command, number);			
 		} else { // bad proposal message.
 			return null;
 		}
