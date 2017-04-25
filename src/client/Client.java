@@ -40,7 +40,8 @@ public class Client {
 	
 	public static void main(String[] args) {
 		System.out.println("/*** Online Shopping Client ***/");
-		try (InputStreamReader stream = new InputStreamReader(System.in); BufferedReader reader = new BufferedReader(stream);) {
+		try (InputStreamReader stream = new InputStreamReader(System.in);
+			BufferedReader reader = new BufferedReader(stream);) {
 			// kick-start client
 			Client client = new Client();
 			client.connectToServer();
@@ -129,6 +130,10 @@ public class Client {
 				}
 			}
 		} catch (SocketTimeoutException signal) {
+			// timeout, server is dead. switch servers.
+			refreshConnection();
+			sendTCPRequest(contents);
+		} catch (SocketException signal) {
 			// timeout, server is dead. switch servers.
 			refreshConnection();
 			sendTCPRequest(contents);
