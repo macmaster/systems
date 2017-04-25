@@ -40,9 +40,6 @@ public class ServerMessenger extends Messenger {
 	// server-server communication
 	private DatagramSocket socket; // outgoing port
 	
-	// leader election
-	private Integer leader;
-	
 	// Paxos Algorithm
 	private Integer senderId = -1; // set as a return handle when msgs are parsed.
 	
@@ -55,8 +52,8 @@ public class ServerMessenger extends Messenger {
 	private LamportClock promisedNumber = new LamportClock(0, 0); // acceptor promises to reject below to this proposal.
 	private LamportClock acceptedNumber = null; // last accepted proposal number.
 	private String acceptedCommand = null; // last accepted command tied to the last accepted proposal number.
-
-    private boolean decided = false;
+	
+	private boolean decided = false;
 	
 	// Lamport's Algorithm
 	private Integer numAcks = 0;
@@ -254,13 +251,13 @@ public class ServerMessenger extends Messenger {
 			System.out.println("Proposal accept was rejected!");
 			return false;
 		}
-
+		
 		// value accepted. notify the learners (NOTE: shouldn't we be printing out 'acceptedCommand'?)
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
+		
+		// send to all other but yourself
 		sendLearnedValue(proposedNumber, proposedCommand);
-
-		//send to all other but yourself
-
+		
 		// clear quorum for next phase.
 		numRejects = numAccepts = 0;
 		this.proposedNumber = null;
@@ -403,7 +400,7 @@ public class ServerMessenger extends Messenger {
 	/** 
 	 * Proposer learns that the acceptor has chosen its value. <br>
 	 */
-
+	
 	public synchronized void receiveAcceptorChoose(LamportClock number, String command) {
 		numAccepts += 1;
 		notifyAll();
@@ -414,7 +411,7 @@ public class ServerMessenger extends Messenger {
 	 * Execute the command and advance the Paxos round.
 	 */
 	public synchronized void sendLearnedValue(LamportClock number, String command) {
-		//send final command for execution to all but myself
+		// send final command for execution to all but myself
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
 			if (id != serverId) {
@@ -429,203 +426,16 @@ public class ServerMessenger extends Messenger {
 				}
 			}
 		}
-
+		
 		// remove faulty servers.
 		for (Integer id : downedServers) {
 			tags.remove(id);
 		}
 	}
-
+	
 	public synchronized void receiveLearnedValue(String command) {
 		System.out.format("Learned that the value was: [%s]%n", command);
+		this.acceptedCommand = null;
+		this.acceptedNumber = null;
 	}
-
-	/******************* Lamport's Clock Methods *************************/
-	
-	public synchronized void request() throws InterruptedException {
-		// time that request is made.
-		queue.add(this.timestamp);
-		
-		// create server channels.
-		// send timestamp and request to all servers.
-		List<Integer> downedServers = new ArrayList<Integer>();
-		for (Integer id : tags.keySet()) {
-			try { // create a socket channel
-				if (id != serverId) {
-					ServerTag tag = tags.get(id);
-					Socket socket = new Socket();
-					socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort()), 100);
-					socket.setSoTimeout(100); // 100ms socket timeouts.
-					
-					// send request string with clock.
-					BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
-					writer.format("request %s%n", timestamp.toString());
-					writer.println("exit");
-					
-					// message acknowledgement
-					this.timestamp.increment();
-					if (reader.readLine() == null) { // 100ms timeout.
-						socket.close();
-						throw new SocketTimeoutException();
-					}
-					writer.close();
-					reader.close();
-					socket.close();
-				}
-			} catch (IOException err) {
-				System.err.println("could not establish socket for server " + id);
-				downedServers.add(id); // remove inactive server tag.
-				numServers = numServers - 1;
-			}
-		}
-		for (Integer id : downedServers) {
-			tags.remove(id);
-		}
-		
-		// wait for acknowledgements.
-		while ((numAcks < numServers - 1) || !(timestamp.equals(queue.peek()))) {
-			wait();
-		}
-		
-		// enter the critical section.
-		numAcks = 0;
-	}
-	
-	public synchronized void receiveRequest(LamportClock timestamp) {
-		// On receive(request, (ts, j))) from Pj :
-		Integer myts = this.timestamp.getTimestamp();
-		Integer otherts = timestamp.getTimestamp();
-		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-		queue.add(timestamp);
-		
-		ServerTag tag = tags.get(timestamp.getProcessId());
-		try (Socket socket = new Socket();) {
-			socket.connect(new InetSocketAddress(tag.getAddress(), tag.getPort()), 100);
-			socket.setSoTimeout(100); // 100ms socket timeouts.
-			PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
-			writer.format("acknowledge %s%n", this.timestamp.toString());
-			writer.println("exit");
-			this.timestamp.increment();
-		} catch (IOException e) {
-			System.err.println("Could not acknowledge the request. server is down.");
-			queue.remove(timestamp);
-			e.printStackTrace();
-		}
-	}
-	
-	public synchronized void receiveAcknowledgement(LamportClock timestamp) {
-		// update my timestamp
-		Integer myts = this.timestamp.getTimestamp();
-		Integer otherts = timestamp.getTimestamp();
-		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-		
-		// increment acks
-		numAcks += 1;
-		notifyAll();
-	}
-	
-	public synchronized void receiveRelease(LamportClock timestamp) {
-		// update my timestamp
-		Integer myts = this.timestamp.getTimestamp();
-		Integer otherts = timestamp.getTimestamp();
-		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-		
-		// remove the request from the queue.
-		timestamp = queue.remove();
-		notifyAll();
-	}
-	
-	public synchronized void release(String command) {
-		// create server channels.
-		// signal timestamped release to other servers.
-		for (Integer id : tags.keySet()) {
-			if (id != serverId) {
-				// create a socket channel
-				ServerTag tag = tags.get(id);
-				try (Socket socket = new Socket(tag.getAddress(), tag.getPort());
-					BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-					PrintWriter writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);) {
-					
-					// send request string with clock.
-					writer.format("release %s%n", this.timestamp.toString());
-					writer.println(command);
-					writer.println("exit");
-					
-					// message acknowledgement
-					this.timestamp.increment();
-				} catch (IOException err) {
-					System.err.format("server %d did not receive the release message", id);
-				}
-			}
-		}
-	}
-	
-	/**
-	 * Leader election function.
-	 * upon awakening, propose leader to other servers.
-	 * synchronously wait for replies of all other servers.
-	 */
-	public synchronized void electLeader(LamportClock timestamp, Integer leaderId) {
-		// update my timestamp
-		Integer myts = this.timestamp.getTimestamp();
-		Integer otherts = timestamp.getTimestamp();
-		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-		
-		// get sender info
-		Integer senderId = timestamp.getProcessId();
-		
-		// when leader election starts.
-		leader = Math.max(serverId, leaderId);
-		
-		// message the leader to the others.
-		List<Integer> downedServers = new ArrayList<Integer>();
-		for (Integer id : tags.keySet()) {
-			if (id != serverId && id != senderId) {
-				try { // catch faulty servers.
-					messageLeader(id);
-				} catch (IOException e) {
-					System.err.println("could not establish socket for server " + id);
-					downedServers.add(id); // remove inactive server tag.
-					numServers = numServers - 1;
-					e.printStackTrace();
-				}
-			}
-		}
-		
-		// remove faulty servers.
-		for (Integer id : downedServers) {
-			tags.remove(id);
-		}
-	}
-	
-	private void messageLeader(Integer serverId) throws IOException {
-		// send out the leader.
-		ServerTag serverTag = getServerTag(serverId);
-		socket.setSoTimeout(100); // send a datagram
-		String command = String.format("leader %d %s", leader, timestamp);
-		DatagramPacket sendPacket = new DatagramPacket(command.getBytes(), command.length());
-		sendPacket.setAddress(serverTag.getAddress());
-		sendPacket.setPort(serverTag.getUDPPort());
-		System.out.format("Sending %s to %s : %d%n", command, serverTag.getAddress().getHostAddress(), serverTag.getUDPPort()); // debug
-		socket.send(sendPacket);
-		incrementClock();
-		
-		// receive the leader acknowledgement.
-		byte[] buffer = new byte[1024];
-		DatagramPacket receivePacket = new DatagramPacket(buffer, buffer.length);
-		socket.receive(receivePacket);
-		command = new String(buffer);
-		String tokens[] = command.split(" ", 3);
-		
-		// update my leader.
-		Integer leaderId = Integer.parseInt(tokens[1]);
-		leader = Math.max(leaderId, leader);
-		
-		// update my timestamp
-		Integer myts = this.timestamp.getTimestamp();
-		Integer otherts = LamportClock.parseClock(tokens[2]).getTimestamp();
-		this.timestamp.setTimestamp(Math.max(myts, otherts) + 1);
-	}
-	
 }
