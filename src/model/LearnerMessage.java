@@ -30,7 +30,7 @@ public class LearnerMessage {
 	
 	@Override
 	public String toString() {
-			return String.format("learn [%s]", command);
+		return String.format("learn [%s]", command);
 	}
 	
 }
