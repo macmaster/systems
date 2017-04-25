@@ -15,10 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 
-import model.AcceptorMessage;
-import model.LamportClock;
-import model.ProposalMessage;
-import model.ServerTag;
+import model.*;
 import server.Server;
 import server.ServerTCPListener;
 import server.ServerUDPListener;
@@ -423,7 +420,7 @@ public class ServerMessenger extends Messenger {
 		for (Integer id : tags.keySet()) {
 			if (id != senderId) {
 				try { // catch faulty servers.
-					sendMessage(id, new ProposalMessage(number, command).toString()); //TODO: new message class, override
+					sendMessage(id, new LearnerMessage(command).toString());
 					String ping = receiveMessage();
 				} catch (IOException e) {
 					System.err.println("could not establish socket for server " + id);

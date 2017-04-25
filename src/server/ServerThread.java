@@ -98,7 +98,7 @@ public class ServerThread extends Thread {
 				else if (command.startsWith("purchase") || command.startsWith("cancel")) {
 					pinger.start();
 					requestLock.lock(); // request critical section
-					messenger.request();
+					messenger.request(); //TODO: transform while loop
 					response = execute(command);
 					messenger.incrementClock();
 					messenger.release(command);
