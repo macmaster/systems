@@ -274,6 +274,7 @@ public class ServerMessenger extends Messenger {
 		// send to all other servers receiving ports
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
+			System.out.println("DEBUG: Leader sending proposal to server " + id);
 			try { // catch faulty servers.
 				sendMessage(id, new ProposalMessage(number).toString());
 				String ping = receiveMessage();
@@ -301,6 +302,7 @@ public class ServerMessenger extends Messenger {
 	 * @throws IOException
 	 */
 	public synchronized void receiveProposerPrepare(Integer senderId, LamportClock number) {
+		System.out.println("DEBUG: Acceptor receiving proposal from server " + senderId);
 		try { // catch faulty servers.
 			if (number.compareTo(promisedNumber) > 0) { // accept the prepare proposal.
 				promisedNumber = number.copy();
@@ -324,7 +326,7 @@ public class ServerMessenger extends Messenger {
 	 * Proposal learns its prepare OR accept proposal was rejected. <br>
 	 */
 	public synchronized void receiveAcceptorReject() {
-		System.out.format("recved acceptor reject!%n");
+		System.out.format("received acceptor reject!%n");
 		numRejects += 1;
 		notifyAll();
 	}
@@ -333,7 +335,7 @@ public class ServerMessenger extends Messenger {
 	 * Proposer learns its prepare proposal was accepted. <br>
 	 */
 	public synchronized void receiveAcceptorAccept(LamportClock number, String command) {
-		// System.out.format("recved acceptor prepare: %s [%s]%n", number, command);
+		System.out.format("received acceptor prepare: %s [%s]%n", number, command);
 		if (number != null && command != null) {
 			if (number.compareTo(proposedNumber) > 0) {
 				proposedNumber = number.copy();

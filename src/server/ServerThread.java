@@ -7,6 +7,8 @@ import java.io.PrintWriter;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.Socket;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,7 +101,7 @@ public class ServerThread extends Thread {
 					pinger.start();
 					requestLock.lock(); // request critical section
 					while (!messenger.proposal(command)) {
-						wait();
+						sleep(50* ThreadLocalRandom.current().nextInt(2, 5 + 1));
 					}
 					response = execute(command);
 					messenger.incrementClock();
