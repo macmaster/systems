@@ -260,7 +260,7 @@ public class ServerMessenger extends Messenger {
 
 		// value accepted. notify the learners (NOTE: shouldn't we be printing out 'acceptedCommand'?)
 		System.out.format("Executing proposal %s: [%s]. original? %s%n", proposedNumber, proposedCommand, original ? "yes" : "no");
-		receiveLearnerValue(proposedNumber, proposedCommand);
+		sendLearnedValue(proposedNumber, proposedCommand);
 		//send to all other but yourself
 
 		// clear quorum for next phase.
@@ -416,7 +416,7 @@ public class ServerMessenger extends Messenger {
 	 * Learner learns the value that was chosen.  <br>
 	 * Execute the command and advance the Paxos round.
 	 */
-	public synchronized void receiveLearnerValue(LamportClock number, String command) {
+	public synchronized void sendLearnedValue(LamportClock number, String command) {
 		//send final command for execution to all but myself
 		List<Integer> downedServers = new ArrayList<Integer>();
 		for (Integer id : tags.keySet()) {
