@@ -132,7 +132,6 @@ public class Client {
 			// timeout, server is dead. switch servers.
 			refreshConnection();
 			sendTCPRequest(contents);
-			// resend command.
 		}
 	}
 	
